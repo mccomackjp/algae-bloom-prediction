@@ -1,0 +1,52 @@
+<meta charset="utf-8" lang="en" /><style class="fallback">body{visibility:hidden;}</style>
+
+# Overview
+In order to run a GPU accelerated workload, one must obtain or create a
+container with the appropriate NVIDIA GPU accelerated libraries and then
+execute the container to run the desired workload.
+
+## Base Docker Images
+NVIDIA maintains the [NVIDIA GPU Cloud (NGC) Registry](https://ngc.nvidia.com).
+The NGC container registry is a collection of Docker images designed for
+optimized deep learning framework containers. The container images are updated
+monthly.
+
+The NGC container registry contains Docker images for a variety of deep
+learning frameworks.  These images serve as a base to build upon since they
+are updated monthly and minimize the effort required to install and configure
+the deep learning frameworks. 
+
+Docker images of particular interest include ones with support for TensorFlow,
+PyTorch, CUDA, and Caffe2.
+
+## Customized Docker Image
+Often in may be necessary to install additional library code into a base Docker
+image so that the desired workloads have the proper library support.
+
+## Singularity
+Once a Docker image has been created, we convert it to a [Singularity](https://www.sylabs.io/guides/2.5.1/user-guide/index.html) image. We use Singularity instead of Docker for three primary reasons:
+
+1. Security - a user inside a Singularity container is the same user as outside the container.
+2. Transportability - the Singularity image is defined in a single file, making it easy to copy to a new system without requiring access to a container repository
+3. Reproducibility - the Singularity image file is easily archived for use at a later date
+
+## Code and Data
+Code and data should not be added to the image. Instead, the directories
+containing code and data can be bound to arbitrary directories within the
+container.
+
+## Running in Interactive Mode
+Running in interactive mode is a reasonable option when other users are not
+on the same machine.
+
+## Running in Batch Mode
+Running in batch mode is preferred for a shared machine.
+This minimizes the time that GPU resources are used by individual users.
+
+## Profiling GPU Usage
+NVIDIA provides profiling tools to help better understand and optimize CUDA
+workloads. The [Visual Profiler](https://docs.nvidia.com/cuda/profiler-users-guide/index.html#visual)
+provides a graphical display of the timeline capturing the CPU and GPU activity
+of an application.
+
+<!-- Markdeep: --><script src="markdeep.js"></script>

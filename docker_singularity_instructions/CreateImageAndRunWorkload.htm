@@ -1,0 +1,249 @@
+<meta charset="utf-8" lang="en" /><style class="fallback">body{visibility:hidden;}</style>
+
+
+**Creating an Image and Running a Workload**
+
+(insert Overview.htm here)
+
+# Details
+
+## Get Base Image from NGC Registry
+* A free NGC Registry account is required in order to access the complete list of containers
+* Once an account is created, an API Key must be generated in order to pull images from the container registry
+* Images are pulled from the repository using the Docker `pull` command:
+~~~~ bash highlight
+docker pull nvcr.io/nvidia/IMAGE:TAG
+~~~~
+
+* The tag encodes the month/year the image was created and the vesion of python. For example, the follow will pull the July 2018 Docker image for PyTorch using Python 3:
+~~~~ bash
+$ docker pull nvcr.io/nvidia/pytorch:18.07-py3
+~~~~
+
+## Customize Docker Image
+* This step is optional. If the base Docker image has everything needed, customizing the Docker image is not required.
+* If additional libraries are needed to run the desired workloads, then a new Docker image must be created that includes these libraries
+* The following Docker file builds a new Docker image that is based on the Python 3 NVIDIA PyTorch image from July 2018:
+~~~~ Dockerfile
+FROM nvcr.io/nvidia/pytorch:18.07-py3
+RUN apt-get update
+RUN pip install --upgrade pip
+RUN pip install matplotlib
+RUN apt-get -y install python3-tk
+RUN pip install jupyter
+RUN pip install pillow
+~~~~ Dockerfile highlight
+RUN ldconfig
+~~~~ Dockerfile
+ENTRYPOINT ./run.sh
+~~~~
+[Listing [dockerfile]: Dockerfile `dockerfile.pytorchjup` for PyTorch with Jupyter]
+
+* This image contains additional libraries needed to run Jupyter notebooks.
+* Note that the highlighted line of the Dockerfile runs `ldconfig` which updates the shared library cache to [avoid symbolic linking problems](https://www.sylabs.io/guides/2.5.1/user-guide/singularity_and_docker.html#library-configurations)
+* The last line specifies the entry point for running the container in batch mode.
+* To build a custom Docker image we use the following command:
+~~~~ bash highlight
+sudo nvidia-docker build -t IMAGE[:TAG] -F DOCKERFILE {dockerfile path}
+~~~~
+
+* Specifically, we use the `nvidia-docker` tool to build the new Docker image:
+~~~~ bash
+$ sudo nvidia-docker build -t pytorchjup -f Dockerfile.pytorchjup .
+~~~~
+
+### Commiting Image to Local Docker Repository
+* Next we need to make the Docker image available in the local Docker repository
+* To do this, we first give the image a name and then push it to the local Docker repository
+~~~~ bash highlight
+sudo docker tag IMAGE-NAME[:TAG] localhost:5000/IMAGE-NAME[:TAG]
+sudo docker push localhost:5000/IMAGE-NAME[:TAG]
+~~~~
+
+* Specifically:
+~~~~ bash
+$ sudo docker tag pytorchjup localhost:5000/pytorchjup
+$ sudo docker push localhost:5000/pytorchjup
+~~~~
+
+!!! Running Docker Container Directly
+    If one has root access, the Docker container may be run directly without the need to convert to a Singularity image. The following starts the Docker container in interactive mode:
+
+    ~~~~ bash highlight
+    sudo nvidia-docker run --rm -it -v SRCDIR[:DESTDIR] IMAGE-NAME[:TAG]
+    ~~~~
+
+    Specifically:
+
+    ~~~~ bash
+    $ sudo nvidia-docker run --rm -it -v /media/derek/95478a98-...-9a40c2e6255c:/dataset \
+                -v /home/derek/super_resolution:/code pytorchjup
+    ~~~~
+
+## Create Singularity Image
+* Converting the Docker image to a Singularity image is straightforward:
+~~~~ bash highlight
+sudo SINGULARITY_NOHTTPS=1 singularity build SINGULARITYFILE docker://DOCKERSERVER:PORT/IMAGE-NAME[:TAG]
+~~~~
+
+* Note: the `SINGULARITY_NOHTTPS=1` surpresses an error that would otherwise be raised because communication with localhost is not secure.
+* For our particular example, we need:
+~~~~ bash
+$ sudo SINGULARITY_NOHTTPS=1 singularity build pytorchjup.simg docker://localhost:5000/pytorchjup
+~~~~
+
+## Code and Data
+The code and data should be stored outside of the singularity image. For our
+specific example, we will run a code stored in `/home/derek/super_resolution` that operates on data stored in `/media/derek/95478a98-...-9a40c2e6255c/BSDS300`.
+
+The code is based on the [Super Resolution](https://github.com/pytorch/examples/tree/master/super_resolution) example in the PyTorch GitHub repository. In this example, we will run Python code to train the network and use a Jupyter notebook (with Python code) to apply the trained network to upsample images.
+
+## Running in Interactive Mode
+* The following command runs the Singularity image in interactive mode:
+~~~~ bash highlight
+singularity shell -B SRCDIR[:DESTDIR[:OPTS]] --nv SINGULARITYFILE
+~~~~
+
+* Here
+  + `shell` opens an interactive shell.
+  + `--nv` specifies NVIDIA support (experimental)
+  + `-B` allows a directory to be bound to a specific path within the Singularity runtime. This can be a comma separated list of path mappings
+  + `SRCDIR` is the path on the local system
+  + `DESTDIR` is the path to be mapped within the Singularity runtime
+  + `OPTS` can be
+    - `rw` - read/write (default)
+    - `ro` - read only
+
+* For our specific example we start the Singularity image in interactive mode:
+~~~~ bash
+$ singularity shell -B /media/derek/95478a98-...-9a40c2e6255c:/dataset:ro,/home/derek/super_resolution:/code \
+     --nv pytorchjup.simg
+~~~~
+
+* Now within our container `/code` contains our code and `/dataset` contains the `BSDS300` directory with our dataset.
+* The __`:ro`__ makes the `/dataset` directory read only.
+* Once in the container, we can run the Python code as follows:
+~~~~ bash
+Singularity pytorchjup.simg:~/singularityimages> cd /code
+Singularity pytorchjup.simg:/code> python main.py --upscale_factor 3 \
+     --batchSize 4 --testBatchSize=100 -nEpochs 5 --lr 0.001
+~~~~
+
+## Running in Batch Mode
+* There are two ways to execute a Singularity image in batch mode:
+1. The following command runs the Singularity image (using the entry point specified in the Dockerfile):
+~~~~ bash highlight
+singularity run -B SRCDIR[:DESTDIR[:OPTS]] --nv SINGULARITYFILE
+~~~~
+
+2. The following command executes the Singularity image:
+~~~~ bash highlight
+singularity exec -B SRCDIR[:DESTDIR[:OPTS]] --nv SINGULARITYFILE [INSTRUCTION]
+~~~~
+
+* The `INSTRUCTION` specifies the shell command to execute
+* In our example, the entry point was specified in the Docker file, so we do:
+~~~~ bash
+$ singularity run -B /media/derek/95478a98-...-9a40c2e6255c:/dataset:ro,/home/derek/super_resolution:/code \
+     --nv pytorchjup.simg
+~~~~
+* This runs the following shell script:
+~~~~ bash
+#!/bin/bash
+cd /code
+python main.py --upscale_factor 3 --batchSize 4 --testBatchSize 100 --nEpochs 5 --lr 0.001
+~~~~
+[Listing [run.sh]: Shell script `run.sh` for Batch Mode]
+* Since the shell script is in a directory that is bound to the container at runtime, it can be modified without needing to modify the container.
+* If the Docker file did not specify the `ENTRYPOINT`, the second (`exec`) method could be used to specify the shell command to be executed.
+
+## Running Jupyter Notebook in Interactive Mode
+* When we created the Docker image, we added support for Jupyter notebooks.
+* As a result, we can run Jupyter notebooks that contain code.
+* Once the Singularity image is started, we can run the Jupyter notebook:
+~~~~ bash highlight
+singularity shell -B SRCDIR[:DESTDIR[:OPTS]] --nv SINGULARITYFILE
+Singularity pytorchjup.simg:~/> jupyter notebook
+~~~~
+
+* Specifically:
+~~~~ bash
+$ singularity shell -B /media/derek/95478a98-...-9a40c2e6255c:/dataset:ro,/home/derek/super_resolution:/code \
+     --nv pytorchjup.simg
+Singularity pytorchjup.simg:~/> unset XDG_RUNTIME_DIR
+Singularity pytorchjup.simg:~/> jupyter notebook --allow-root --no-browser
+~~~~
+* We then connect to the notebook by pointing a web browser to `http://localhost:8888/?token=...`
+
+* Here we will use the following Jupyter notebook which takes an image and produces an upsampled image using the model trained by the steps above.
+* The Jupyter notebook contains the following code:
+~~~~ python
+%reload_ext autoreload
+%autoreload 2
+%matplotlib inline
+
+from __future__ import print_function
+import argparse
+import torch
+from torch.autograd import Variable
+from PIL import Image
+from torchvision.transforms import ToTensor
+import matplotlib.pyplot as plt
+
+import numpy as np
+import os
+
+PATH = "/dataset/BSDS300/images/test"
+model_filename = "/code/model_epoch_5.pth"
+use_cuda = True
+
+os.listdir(PATH)
+
+files = os.listdir(PATH)[:5]
+files
+
+input_image = PATH + '/' + files[0]
+display_img = Image.open(input_image)
+img = display_img.convert('YCbCr')
+y, cb, cr = img.split()
+plt.imshow(display_img)
+
+model = torch.load(model_filename)
+img_to_tensor = ToTensor()
+input = img_to_tensor(y).view(1, -1, y.size[1], y.size[0])
+
+if use_cuda:
+    model = model.cuda()
+    input = input.cuda()
+    
+out = model(input)
+out = out.cpu()
+out_img_y = out[0].detach().numpy()
+out_img_y *= 255.0
+out_img_y = out_img_y.clip(0, 255)
+out_img_y = Image.fromarray(np.uint8(out_img_y[0]), mode='L')
+
+out_img_cb = cb.resize(out_img_y.size, Image.BICUBIC)
+out_img_cr = cr.resize(out_img_y.size, Image.BICUBIC)
+out_img = Image.merge('YCbCr', [out_img_y, out_img_cb, out_img_cr]).convert('RGB')
+plt.imshow(out_img)
+
+output_filename = "/code/out.png"
+out_img.save(output_filename)
+print('output image saved to ', output_filename)
+~~~~
+[Listing [upsample.ipynb]: Jupyter notebook [`upsample.ipynb`](upsample.ipynb) for Inference]
+
+## Running Jupyter Notebook in Batch Mode
+* It is possible to run an already created Jupyter notebook in batch mode
+* This process is similar to running any workload in batch mode. We just need to change the `run.sh` contents:
+~~~~ bash
+#!/bin/bash
+jupyter nbconvert --execute --ExecutePreprocessor.kernel_name=python --to html \
+        --output outputfilename /code/inputfile.ipynb
+~~~~
+[Listing [run.sh]: Shell script `run.sh` for Jupyter Notebooks in Batch Mode]
+
+# Profiling
+
+<!-- Markdeep: --><script src="markdeep.js"></script>
