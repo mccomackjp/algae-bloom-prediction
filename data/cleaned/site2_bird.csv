@@ -1,4 +1,4 @@
-﻿Date (mm.dd.yyyy),Time 24hr,Temp C,Sp Cond (uS/cm),pH (mV),pH,Trubidity (NTU),Chlorophyll (ug/L),Chlorophyll RFU,ODOSat%,ODO (mg/L),BGA-Phycocyanin RFU
+﻿Date (mm.dd.yyyy),Time 24hr,Temp C,Sp Cond (uS/cm),pH (mV),pH,Turbidity (NTU),Chlorophyll (ug/L),Chlorophyll RFU,ODOSat%,ODO (mg/L),BGA-Phycocyanin RFU
 5/5/2017,0:00,15.37,2184,-100,8.41,10.7,2.7,0.7,92.2,9.16,0.1
 5/5/2017,0:15,15.45,2139,-101,8.43,9.92,2.7,0.7,93.3,9.25,0.1
 5/5/2017,0:30,15.49,2057,-102.3,8.45,8.9,2.8,0.7,94.8,9.4,0.2
