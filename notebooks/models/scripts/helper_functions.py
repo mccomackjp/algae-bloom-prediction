@@ -15,7 +15,7 @@ def create_windows(dataset, window_size, shift, points_ahead=0):
         # shift the window shift blocks of time
         start += shift
         if start % 100 == 0:
-            print('Window Segmentation {0:.2f}% done'.format(((start+window_size) / dataset.shape[0]) * 100 ))
+            print('Window Segmentation {0:.2f}% done'.format(((start+window_size+points_ahead) / dataset.shape[0]) * 100 ))
 '''
 Segments the dataset based on the parameters that are passed in.
 @param dataset - the dataset to segment into window
@@ -26,8 +26,12 @@ Segments the dataset based on the parameters that are passed in.
 def segment_dataset(dataset, columns, target, window_size=10, pts_ahead=0):
     print('WINDOW SIZE', window_size)
     print('NUMBER OF COULUMNS',len(columns))
+    print('LOOKING AHEAD {} points'.format(pts_ahead))
     segments = np.empty((0, window_size, len(columns)))
-    targets = np.empty((0))
+    if pts_ahead == 0:
+        targets = np.empty((0))
+    else:
+        targets = np.empty((0,pts_ahead))
     count = 0
     for (start, end, pts_ahd) in create_windows(dataset, window_size, 1, points_ahead=pts_ahead):
         count+=1
@@ -38,9 +42,9 @@ def segment_dataset(dataset, columns, target, window_size=10, pts_ahead=0):
             # This makes it more likly to predict a bloom. Can be changed to iloc[0] to
             # be less likly to predict a bloom (more 0s in the label array)
             if pts_ahead == 0:
-                targets = np.append(targets, dataset[target][start:end].mode().iloc[-1])
+                targets = np.append(targets, dataset[target][start:end].values[-1])
             else:
-                targets = np.append(targets, dataset[target][end:pts_ahd].mode().iloc[-1])
+                targets = np.vstack([targets, dataset[target][end:pts_ahd].values])
         else:
             print("No more Windows available... Exiting")
             break
