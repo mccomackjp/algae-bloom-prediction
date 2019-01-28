@@ -52,14 +52,35 @@ def create_model(filters, kernal_size, i_shape, class_number, learning_r, activa
     
     # use default layers if the list of layers is empty.
 	layers = layers if layers else [Conv2D(filters, kernal_size, input_shape=i_shape, activation=activation, padding='same'),
+
                   MaxPooling2D(pool_size=(4,4)), Conv2D(filters * 2, (3,3), activation='relu',padding='same'),
                   MaxPooling2D(pool_size=(1,1)), Flatten(), Dropout(0.2), Dense(filters), 
                   Dense(class_number, activation='softmax')]
     
-	for layer in layers:
-		model.add(layer)
+  for layer in layers:
+    model.add(layer)
     
-	model.compile(loss=ks.losses.categorical_crossentropy,
+  model.compile(loss=ks.losses.categorical_crossentropy,
                 optimizer=ks.optimizers.Adam(lr=learning_r),
                 metrics=['accuracy'])
-	return model
+  return model
+
+
+def create_model_mult(mult, kernal_size, i_shape, class_number, learning_r, activation='relu' ):
+    model = Sequential()
+    model.add(Conv2D(44, kernal_size, input_shape=i_shape, activation=activation, padding='same'))
+    model.add(MaxPooling2D(pool_size=(4,4)))
+    print(int(44 * mult))
+    # creates adds another Convelutional layer with twice the number of filter layers, expanding the neurons
+    model.add(Conv2D( int(44 * mult) , (3,3), activation='relu',padding='same'))
+    model.add(MaxPooling2D(pool_size=(1,1)))
+    model.add(Flatten())
+    model.add(Dropout(0.2))
+    # compress it back down to the original passed in size
+    model.add(Dense(44))
+    model.add(Dense(class_number, activation='softmax'))
+    
+    model.compile(loss=ks.losses.categorical_crossentropy,
+                optimizer=ks.optimizers.Adam(lr=learning_r),
+                metrics=['accuracy'])
+    return model
