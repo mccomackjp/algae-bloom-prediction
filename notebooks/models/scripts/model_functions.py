@@ -2,6 +2,8 @@ from keras.layers import Dense, Dropout, Conv2D, Flatten, Activation, MaxPooling
 from keras.models import Sequential
 import keras as ks
 import numpy as np
+import pandas as pd
+
 
 def reshape_timeseries(inputs, targets, look_back=1, look_ahead=1):
     '''
@@ -86,7 +88,7 @@ def create_model_mult(mult, kernal_size, i_shape, class_number, learning_r, acti
     return model
 
 
-def create_model_mult(mult, kernal_size, i_shape, class_number, learning_r, activation='relu' ):
+def create_model_mult(mult, kernal_size, i_shape, class_number, learning_r, activation='relu'):
     model = Sequential()
     model.add(Conv2D(44, kernal_size, input_shape=i_shape, activation=activation, padding='same'))
     model.add(MaxPooling2D(pool_size=(4,4)))
