@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from keras import backend as K
 
 '''
 determines the window size for the data set
@@ -32,9 +33,7 @@ def segment_dataset(dataset, columns, target, window_size=10, pts_ahead=0):
         targets = np.empty((0))
     else:
         targets = np.empty((0,pts_ahead))
-    count = 0
     for (start, end, pts_ahd) in create_windows(dataset, window_size, 1, points_ahead=pts_ahead):
-        count+=1
         values = dataset[columns][start:end]
         if(values.shape[0] == window_size):
             segments = np.vstack([segments, np.stack([values])])
@@ -49,3 +48,35 @@ def segment_dataset(dataset, columns, target, window_size=10, pts_ahead=0):
             print("No more Windows available... Exiting")
             break
     return (segments, targets)
+
+'''
+Obtains the guesses for the model
+'''
+def create_class_predictions(pred):
+    retval = np.array([])
+    for row in pred:
+        max_value = (-1,-1)
+        for index, value in enumerate(row):
+            if value > max_value[1]:
+                max_value = (index, value)
+        retval = np.append(retval, max_value[0])
+    return retval
+
+'''
+Saves the model withe the specified parameters to the path located at 
+./../../saved_models/<MODEL_NAME>/<MODEL_VERSION>
+
+@param model - the model to be saved
+@param model_name - the name you would want to model to be saved as
+@param model_versiuon - the version of the model.
+'''
+def save_model(model, model_name, model_version):
+    # ignoring dropout for deployment
+    K.set_learning_phase(0)
+     
+    # Set a file path to save the model in.
+    tf_path = "./../../saved_models/{}/{}".format(model_name, model_version)
+     
+    # Get the session from the Keras back-end to save the model in TF format.
+    with K.get_session() as sess:
+        tf.saved_model.simple_save(sess, tf_path, inputs={'input': model.input}, outputs={t.name: t for t in model.outputs})
