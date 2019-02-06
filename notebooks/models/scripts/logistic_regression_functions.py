@@ -87,8 +87,8 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
 
     if null_model:
         # Create null model if required
-        x_train = np.zeroes(x_train.shape)
-        x_test = np.zeroes(x_test.shape)
+        x_train = np.zeros(x_train.shape)
+        x_test = np.zeros(x_test.shape)
     else:
         # impute missing values
         imputer = SimpleImputer(missing_values=np.nan)
@@ -125,7 +125,7 @@ def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
     recall = recall_score(y_test, predictions)
     precision = precision_score(y_test, predictions)
     cm = confusion_matrix(y_test, predictions)
-    return recall, precision, cm, predictions_prob, model
+    return recall, precision, cm, predictions, predictions_prob, model
 
 
 def roc_plot(actual, predictions):
@@ -151,7 +151,7 @@ def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
     models = {}
     for column in x_columns:
         print("Training model with:", column)
-        recall, precision, cm, _, _ = train_model(training_df, testing_df, [column], y_column)
+        recall, precision, cm, _, _, _ = train_model(training_df, testing_df, [column], y_column)
         models[column] = recall
         print("Recall:", recall)
         print("Precision", precision)
@@ -178,32 +178,33 @@ def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
 
     Returns:
        Tuple of: trained Regressor model, root mean squared error of the model.
+       :param training_df:
 
     """
-    recall, precision, cm, predictions_prob, model
+    # Start with a base null model
+    recall, precision, cm, predictions, predictions_prob, model = train_model(
+        training_df, testing_df, x_columns, y_column, null_model=True)
     greedy_columns = []
-    greedy_accuracy = -1
-    greedy_predictions = None
-    greedy_predictions_prob = None
-    greedy_model = None
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
-        temp_model, temp_predictions, temp_cm, temp_pred_prob = train_model(
-            df_train,
-            df_test,
-            temp_columns,
-            y_column)
-        print("Test model accuracy:", temp_accuracy)
-        if temp_accuracy > greedy_accuracy:
+        temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, temp_model = train_model(
+            training_df, testing_df, temp_columns, y_column)
+        print("Test model recall:", temp_recall)
+        print("Test model precision:", temp_precision)
+        if temp_recall > recall:
             print("\nUpdating greedy model")
             greedy_columns = temp_columns
-            greedy_accuracy = temp_accuracy
-            greedy_predictions = temp_predictions
-            greedy_predictions_prob = temp_prob
+            recall = temp_recall
+            precision = temp_precision
+            cm = temp_cm
+            predictions = temp_pred
+            predictions_prob = temp_pred_prob
             model = temp_model
         print()
 
     print("Final greedy columns:", greedy_columns)
-    print("Final greedy accuracy:", greedy_accuracy)
-    return (greedy_model, greedy_rmse)
+    print("Final greedy recall:", recall)
+    print("Final greedy precision:", recall)
+    print("Final greedy confusion matrix:", cm)
+    return recall, precision, cm, predictions, predictions_prob, model
