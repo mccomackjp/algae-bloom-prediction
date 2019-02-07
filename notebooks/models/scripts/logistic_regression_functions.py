@@ -12,6 +12,14 @@ import pandas as pd
 
 def add_target_column(data_frames, target_column='BGA-Phycocyanin RFU',
                       new_target_name='bloom', threshold=2):
+    """
+    Adds a target categorical column to the given list of data frames.
+
+    :param data_frames: List of data frames to add column to.
+    :param target_column: Name of column to create the categorical column from.
+    :param new_target_name: Name of the new target column.
+    :param threshold: Threshold to set each value of the new target with.
+    """
     for df in data_frames:
         df[new_target_name] = df[target_column].apply(
             lambda x: 1 if x > threshold else 0)
@@ -29,27 +37,22 @@ def import_df_data(files, drop_columns=[]):
 
 
 def is_numerical(series):
-    """Checks if a series is made up of numerical data or not.
+    """
+    Checks if a series is made up of numerical data or not.
 
-    Args:
-        series: Series object to be checked
-
-    Returns:
-        True if the data are integers or floats, False otherwise
-
+    :param series: Series object to be checked
+    :return: True if the data are integers or floats, False otherwise
     """
     return series.dtype == 'int64' or series.dtype == 'float64' \
            or series.dtype == 'int32' or series.dtype == 'float32'
 
 
 def split_numerical_categorical(df):
-    """Splits a given DataFrame into numerical and categorical dataframes.
+    """
+    Splits a given DataFrame into numerical and categorical dataframes.
 
-    Args:
-        df: DataFrame to split.
-
-    Returns:
-        Tuple of: (numerical DataFrame, categorical DataFrame)
+    :param df: DataFrame to split.
+    :return: Tuple of: (numerical DataFrame, categorical DataFrame)
     """
     num_columns = []
     cat_columns = []
@@ -63,6 +66,17 @@ def split_numerical_categorical(df):
 
 def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
                         null_model=False):
+    """
+    Creates training and testing numpy arrays with scalled and imputed data from the given data
+    frames. Will creates dummy columns for categorical data (non int or float type) data.
+
+    :param training_df: Data frame to create the training data from.
+    :param testing_df: Data frame to create the testing data from.
+    :param x_columns: Columns to be used as inputs.
+    :param y_column: Target column to be predicted.
+    :param null_model: Flag if this should create a null model or not.
+    :return: x_train, y_train, x_test, y_test tuple of numpy arrays.
+    """
     # Split dataframes by categorical and numerical data
     df_train_num, df_train_cat = split_numerical_categorical(training_df)
     df_test_num, df_test_cat = split_numerical_categorical(testing_df)
@@ -78,6 +92,11 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
 
+    # impute missing values
+    imputer = SimpleImputer(missing_values=np.nan)
+    x_train = imputer.fit_transform(x_train)
+    x_test = imputer.transform(x_test)
+
     # add categorical columns
     if len(df_train_cat.columns) > 0 and len(df_test_cat.columns) > 0:
         x_train_cat = pd.get_dummies(df_train_cat).astype('float64').values
@@ -89,26 +108,23 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
         # Create null model if required
         x_train = np.zeros(x_train.shape)
         x_test = np.zeros(x_test.shape)
-    else:
-        # impute missing values
-        imputer = SimpleImputer(missing_values=np.nan)
-        x_train = imputer.fit_transform(x_train)
-        x_test = imputer.transform(x_test)
 
     return x_train, y_train, x_test, y_test
 
 
 def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
                 null_model=False):
-    """Trains a SGD Classifier model.
+    """
+    Trains a linear regression model on the given training and testing data frames.
 
-    training_df: dataframe of training data.
-    testing_df: dataframe of testing data.
-    x_columns: list of numerical feature column names.
-    y_column: target string name.
-
-    returns a tuple of:
-    The trained model, predicted values, predicted probabilities, model accuracy
+    :param training_df: Data frame to create the training data from.
+    :param testing_df: Data frame to create the testing data from.
+    :param x_columns: Columns to be used as inputs.
+    :param y_column: Target column to be predicted.
+    :param max_iter: Max iterations for training.
+    :param null_model: Whether to train a null model or not.
+    :return: tuple of recall, precision, and confusing matrix metrics,
+    as well as predictions made, predictions probabilities, and the model itself.
     """
     # Create training and testing numpy arrays
     x_train, y_train, x_test, y_test = create_numpy_arrays(training_df,
@@ -129,8 +145,15 @@ def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
 
 
 def roc_plot(actual, predictions):
+    """
+    Plots a ROC curve.
+    :param actual: Array of actual target values
+    :param predictions: Predictions made by the model.
+    :return: mMtplotlib ROC plot.
+    """
     fpr, tpr, thresholds = roc_curve(actual, predictions)
     roc_auc = auc(fpr, tpr)
+    print("Model AUC: %0.4f" % roc_auc)
     plt.title("ROC")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
@@ -138,15 +161,13 @@ def roc_plot(actual, predictions):
 
 
 def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
-    """Sorts a list of columns by their recall in descending order.
-
-    Args:
-        df: DataFrame to train with.
-        regressor: model to train.
-
-    Returns:
-        a sorted list of column names
-
+    """
+    Trains and sorts each column in the x_columns by recall
+    :param training_df: Data frame to create the training data from.
+    :param testing_df: Data frame to create the testing data from.
+    :param x_columns: Columns to be used as inputs.
+    :param y_column: Target column to be predicted.
+    :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
@@ -166,20 +187,16 @@ def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
 
 
 def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
-    """Trains a given regressor model with the given dataframe on the target
-    columns using a greedy algorithm based on the sorted columns.
+    """
+    Creates a greedy model based on columns which only improve recall.
 
-    Args:
-        df: DataFrame to get data from.
-        target_columns: column names to train on.
-        sorted_columns: columns sorted by rmse to create greedy model with.
-        regressor: scikit-learn Regressor object to train.
-        multitask: Boolean determining if we are using a multitask Regressor.
-
-    Returns:
-       Tuple of: trained Regressor model, root mean squared error of the model.
-       :param training_df:
-
+    :param training_df: Data frame to create the training data from.
+    :param testing_df: Data frame to create the testing data from.
+    :param x_columns: Columns to be used as inputs.
+    :param y_column: Target column to be predicted.
+    :param sorted_columns: List of sorted columns by recall.
+    :return: tuple of recall, precision, and confusing matrix metrics,
+    as well as predictions made, predictions probabilities, and the model itself.
     """
     # Start with a base null model
     recall, precision, cm, predictions, predictions_prob, model = train_model(
@@ -206,5 +223,5 @@ def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
     print("Final greedy columns:", greedy_columns)
     print("Final greedy recall:", recall)
     print("Final greedy precision:", recall)
-    print("Final greedy confusion matrix:", cm)
+    print("Final greedy confusion matrix:\n", cm)
     return recall, precision, cm, predictions, predictions_prob, model
