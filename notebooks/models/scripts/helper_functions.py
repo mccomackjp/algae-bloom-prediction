@@ -4,19 +4,18 @@ from math import floor
 from keras import backend as K
 
 def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours_ahead=None, weeks_ahead=None):
-    '''
+    """
     determines the window size for the data set
-    @param dataset - The dataset to get windows for
-    @param window_size - the size of the window
-    @param shift - the amout to shift the window
-    @param time_col - the time column to determine the window size on
-    @param days_ahead - the amount of days ahead to look for the target window
-    @param hours_ahead - the number of hours ahead to look for the target window
-    @param weeks_ahead - the number of weeks ahead to look for the target window
-    
-    @yields the indexes based on the widow 
-
-    '''
+    :param dataset: The dataset to get windows for
+    :param window_size: the size of the window
+    :param shift: the amout to shift the window
+    :param time_col: the time column to determine the window size on
+    :param days_ahead: the amount of days ahead to look for the target window
+    :param hours_ahead: the number of hours ahead to look for the target window
+    :param weeks_ahead: the number of weeks ahead to look for the target window
+   
+    :yield: the indexes for the next window 
+    """
     
     start = 0
     end = 1
@@ -58,32 +57,30 @@ def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours
         end += shift
         ahead += shift
         if start % 500 == 0:
-            print('Window Segmentation {0:.2f}% done'.format(((ahead) / dataset.shape[0]) * 100 ))
+            print('Data Segmentation {0:.2f}% complete'.format(((ahead) / dataset.shape[0]) * 100 ))
             
 def segment_dataset(dataset, time_col, window_multiplier=2, days_ahead=1, hours_ahead=None, weeks_ahead=None):
-    '''
+    """
     Segments the dataset based on the parameters that are passed in.
     
-    :param dataset - the dataset to segment into windows
-    :param time_col - the name of the time column in the dataset
-    :param window_multiplier - the size times larger for the window of features to be compared to the target. Default is twice the size
-    :param hours_ahead - the number of hours ahead for the window to get back
-    :param weeks_ahead - the number of weeks ahead to look.
-    :param days_ahead - the number of days ahead of the window to get back. If no other  Default is 1
+    :param dataset: the dataset to segment into windows
+    :param time_col: the name of the time column in the dataset
+    :param window_multiplier: the size times larger for the window of features to be compared to the target. Default is twice the size
+    :param hours_ahead: the number of hours ahead for the window to get back
+    :param weeks_ahead: the number of weeks ahead to look.
+    :param days_ahead: the number of days ahead of the window to get back. If no other  Default is 1
 
+    :return: An array of Dataframes windowed for features and targets
+    """
     
-    :return An array of Dataframes windowed for features and targets
-    '''
-    
-    # determine that the feature window size will always be twice the size of the features
     if hours_ahead != None:
         window_size = hours_ahead * window_multiplier
     elif weeks_ahead != None:
         window_size = weeks_ahead * window_multiplier
     else:
         window_size =  days_ahead * window_multiplier
-    segments = []
-    targets = []
+    segments = np.array([])
+    targets  = np.array([])
     if hours_ahead != None:
         for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, hours_ahead=hours_ahead):
             segments.append(dataset.iloc[start:end,:])
@@ -99,10 +96,11 @@ def segment_dataset(dataset, time_col, window_multiplier=2, days_ahead=1, hours_
             targets.append(dataset.iloc[end:ahead,:])
     return segments, targets
 
-'''
-Obtains the guesses for the model
-'''
+
 def create_class_predictions(pred):
+    """
+    Obtains the guesses for the model
+    """
     retval = np.array([])
     for row in pred:
         max_value = (-1,-1)
@@ -112,15 +110,16 @@ def create_class_predictions(pred):
         retval = np.append(retval, max_value[0])
     return retval
 
-'''
-Saves the model withe the specified parameters to the path located at 
-./../../saved_models/<MODEL_NAME>/<MODEL_VERSION>
-
-@param model - the model to be saved
-@param model_name - the name you would want to model to be saved as
-@param model_versiuon - the version of the model.
-'''
 def save_model(model, model_name, model_version):
+    """
+    Saves the model withe the specified parameters to the path located at 
+    ./../../saved_models/<MODEL_NAME>/<MODEL_VERSION>
+    
+    @param model - the model to be saved
+    @param model_name - the name you would want to model to be saved as
+    @param model_versiuon - the version of the model.
+    """
+
     # ignoring dropout for deployment
     K.set_learning_phase(0)
      
