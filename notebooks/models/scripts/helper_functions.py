@@ -2,52 +2,62 @@ import numpy as np
 import pandas as pd
 from keras import backend as K
 
-'''
-determines the window size for the data set
-@param dataset - The dataset to get windows for
-@param window_size - the size of the window  
-@param shift - the amout to shift the window
-@param point_ahead - the amount of points ahead to return
-'''
-def create_windows(dataset, window_size, shift, points_ahead=0):
+def create_windows(dataset, window_size, shift, days_ahead, time_col):
+    '''
+    determines the window size for the data set
+    @param dataset - The dataset to get windows for
+    @param window_size - the size of the window
+    @param shift - the amout to shift the window
+    @param point_ahead - the amount of points ahead to return
+    '''
+    
     start = 0
-    while start+window_size < dataset.shape[0] and ((start + window_size + points_ahead) < dataset.shape[0]): 
-        yield (int(start), int(start+window_size), int(start+window_size+points_ahead))
-        # shift the window shift blocks of time
-        start += shift
-        if start % 100 == 0:
-            print('Window Segmentation {0:.2f}% done'.format(((start+window_size+points_ahead) / dataset.shape[0]) * 100 ))
-'''
-Segments the dataset based on the parameters that are passed in.
-@param dataset - the dataset to segment into window
-@param columns - the array of columns from the dataset to be looked at
-@param window_size - the size of the window you would like to be looked at. Defualt is 10
-@param pts_ahead - the number of points ahead of the window to get back. Default is 0
-'''
-def segment_dataset(dataset, columns, target, window_size=10, pts_ahead=0):
-    print('WINDOW SIZE', window_size)
-    print('NUMBER OF COULUMNS',len(columns))
-    print('LOOKING AHEAD {} points'.format(pts_ahead))
-    segments = np.empty((0, window_size, len(columns)))
-    if pts_ahead == 0:
-        targets = np.empty((0))
-    else:
-        targets = np.empty((0,pts_ahead))
-    for (start, end, pts_ahd) in create_windows(dataset, window_size, 1, points_ahead=pts_ahead):
-        values = dataset[columns][start:end]
-        if(values.shape[0] == window_size):
-            segments = np.vstack([segments, np.stack([values])])
-            # Takes the larger of the two variables if there are more than one. 
-            # This makes it more likly to predict a bloom. Can be changed to iloc[0] to
-            # be less likly to predict a bloom (more 0s in the label array)
-            if pts_ahead == 0:
-                targets = np.append(targets, dataset[target][start:end].values[-1])
-            else:
-                targets = np.vstack([targets, dataset[target][end:pts_ahd].values])
-        else:
-            print("No more Windows available... Exiting")
+    end = start + window_size
+     
+    while True:
+        start_time = dataset[time_col][start]
+        end_time = dataset[time_col][end]
+        elapsed = end_time - start_time
+        if elapsed.days == window_size:
+            print("days ahead {} window size {}".format(elapsed.days, window_size))
+            input()
             break
-    return (segments, targets)
+        end += 1
+    ahead = end + 1
+    while True:
+        start_time = dataset[time_col][end]
+        end_time = dataset[time_col][ahead]
+        elapsed = end_time - start_time
+        if elapsed.days == days_ahead:
+            print("elapsed {} window size {}".format(elapsed.days, days_ahead))
+            input()
+            break
+        ahead += 1
+    print("Starting the window")
+    while (ahead < dataset.shape[0]): 
+        yield ( int( start ), int(end), int(ahead))
+        # shift the window 'shift' blocks of time
+        start += shift
+        end += shift
+        ahead += shift
+        if start % 500 == 0:
+            print('Window Segmentation {0:.2f}% done'.format(((ahead) / dataset.shape[0]) * 100 ))
+def segment_dataset(dataset, time_col, window_size=2, days_ahead=1):
+    '''
+    Segments the dataset based on the parameters that are passed in.
+    @param dataset - the dataset to segment into windows
+    @param columns - the array of columns from the dataset to be looked at
+    @param window_size - the size of the window (in days) you would like to be looked at. Defualt is 2
+    @param days_ahead - the number of days ahead of the window to get back. Default is 1
+    '''
+    print('WINDOW SIZE', window_size)
+    print('LOOKING AHEAD {} day(s)'.format(days_ahead))
+    segments = []
+    targets = []
+    for (start, end, ahead) in create_windows(dataset, window_size, 1, days_ahead, time_col):
+        segments.append(dataset.iloc[[start, end],:])
+        targets.append(dataset.iloc[[end,ahead],:])
+    return np.array(segments), np.array(targets)
 
 '''
 Obtains the guesses for the model
@@ -80,3 +90,4 @@ def save_model(model, model_name, model_version):
     # Get the session from the Keras back-end to save the model in TF format.
     with K.get_session() as sess:
         tf.saved_model.simple_save(sess, tf_path, inputs={'input': model.input}, outputs={t.name: t for t in model.outputs})
+        
