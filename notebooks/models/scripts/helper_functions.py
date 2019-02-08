@@ -10,7 +10,7 @@ def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours
     :param window_size: the size of the window
     :param shift: the amout to shift the window
     :param time_col: the time column to determine the window size on
-    :param days_ahead: the amount of days ahead to look for the target window
+    :param days_ahead: the numer of days ahead to look for the target window
     :param hours_ahead: the number of hours ahead to look for the target window
     :param weeks_ahead: the number of weeks ahead to look for the target window
    
@@ -52,14 +52,14 @@ def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours
         ahead += 1
     while (ahead < dataset.shape[0]): 
         yield ( int( start ), int(end), int(ahead))
-        # shift the window 'shift' blocks of time
-        start += shift
-        end += shift
-        ahead += shift
-        if start % 500 == 0:
+        # shift the window 'shift' hour blocks of time
+        start = update_indicies(dataset, time_col, shift, start)
+        end   = update_indicies(dataset, time_col, shift, end)
+        ahead = update_indicies(dataset, time_col, shift, ahead)
+        if start % 200 == 0:
             print('Data Segmentation {0:.2f}% complete'.format(((ahead) / dataset.shape[0]) * 100 ))
             
-def segment_dataset(dataset, time_col, window_multiplier=2, days_ahead=1, hours_ahead=None, weeks_ahead=None):
+def segment_dataset(dataset, time_col, shift=1, window_multiplier=2, days_ahead=1, hours_ahead=None, weeks_ahead=None):
     """
     Segments the dataset based on the parameters that are passed in.
     
@@ -74,29 +74,50 @@ def segment_dataset(dataset, time_col, window_multiplier=2, days_ahead=1, hours_
     """
     
     if hours_ahead != None:
-        window_size = hours_ahead * window_multiplier
+        window_size = floor(hours_ahead * window_multiplier)
     elif weeks_ahead != None:
-        window_size = weeks_ahead * window_multiplier
+        window_size = floor(weeks_ahead * window_multiplier)
     else:
-        window_size =  days_ahead * window_multiplier
-    segments = np.array([])
-    targets  = np.array([])
+        window_size =  floor(days_ahead * window_multiplier)
+    segments = []
+    targets  = []
     if hours_ahead != None:
-        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, hours_ahead=hours_ahead):
+        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, hours_ahead=hours_ahead):
             segments.append(dataset.iloc[start:end,:])
             targets.append(dataset.iloc[end:ahead,:])
     elif weeks_ahead != None:
-        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, weeks_ahead=weeks_ahead):
+        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, weeks_ahead=weeks_ahead):
             segments.append(dataset.iloc[start:end,:])
             targets.append(dataset.iloc[end:ahead,:])
     else:
         # if no option is selected will default to days ahead
-        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, days_ahead=days_ahead):
+        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, days_ahead=days_ahead):
             segments.append(dataset.iloc[start:end,:])
             targets.append(dataset.iloc[end:ahead,:])
     return segments, targets
 
-
+def update_indicies(dataframe, time_col, shift, value):
+    """
+    updates the indicies with the newest indicies based on the shift value passed in
+    
+    :param dataframe: the dataframe to get the next indicies of
+    :param time_col: the column that contains the timestamp
+    :param shift: the amout to shift in hours
+    :param value: the value to get the next shifted value of
+    
+    :return: the next index for the specivied value
+    """
+    next_index = value + 1
+    while next_index < dataframe.shape[0]:
+        start_time = dataframe[time_col][value]
+        end_time = dataframe[time_col][next_index]
+        elapsed = end_time - start_time
+        if elapsed.seconds / 3600 == shift:
+            break
+        next_index += 1
+    return next_index
+         
+    
 def create_class_predictions(pred):
     """
     Obtains the guesses for the model
