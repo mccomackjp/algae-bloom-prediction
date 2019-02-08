@@ -1,39 +1,56 @@
 import numpy as np
 import pandas as pd
+from math import floor
 from keras import backend as K
 
-def create_windows(dataset, window_size, shift, days_ahead, time_col):
+def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours_ahead=None, weeks_ahead=None):
     '''
     determines the window size for the data set
     @param dataset - The dataset to get windows for
     @param window_size - the size of the window
     @param shift - the amout to shift the window
-    @param point_ahead - the amount of points ahead to return
+    @param time_col - the time column to determine the window size on
+    @param days_ahead - the amount of days ahead to look for the target window
+    @param hours_ahead - the number of hours ahead to look for the target window
+    @param weeks_ahead - the number of weeks ahead to look for the target window
+    
+    @yields the indexes based on the widow 
+
     '''
     
     start = 0
-    end = start + window_size
-     
-    while True:
+    end = 1
+    while end < dataset.shape[0]:
         start_time = dataset[time_col][start]
         end_time = dataset[time_col][end]
         elapsed = end_time - start_time
-        if elapsed.days == window_size:
-            print("days ahead {} window size {}".format(elapsed.days, window_size))
-            input()
-            break
+        
+        if hours_ahead != None:
+            if floor(elapsed.seconds /3600) == window_size:
+                break
+        elif weeks_ahead != None:
+            if floor(elapsed.days/7) == window_size:
+                break
+        else: 
+            if elapsed.days == window_size:
+                break
         end += 1
     ahead = end + 1
-    while True:
+    while ahead < dataset.shape[0]:
         start_time = dataset[time_col][end]
         end_time = dataset[time_col][ahead]
         elapsed = end_time - start_time
-        if elapsed.days == days_ahead:
-            print("elapsed {} window size {}".format(elapsed.days, days_ahead))
-            input()
-            break
+        
+        if hours_ahead != None:
+            if floor(elapsed.seconds / 3600) == hours_ahead:
+                break
+        elif weeks_ahead != None:
+            if floor(elapsed.days / 7) == weeks_ahead:
+                break
+        else:
+            if elapsed.days == days_ahead:
+                break
         ahead += 1
-    print("Starting the window")
     while (ahead < dataset.shape[0]): 
         yield ( int( start ), int(end), int(ahead))
         # shift the window 'shift' blocks of time
@@ -42,22 +59,45 @@ def create_windows(dataset, window_size, shift, days_ahead, time_col):
         ahead += shift
         if start % 500 == 0:
             print('Window Segmentation {0:.2f}% done'.format(((ahead) / dataset.shape[0]) * 100 ))
-def segment_dataset(dataset, time_col, window_size=2, days_ahead=1):
+            
+def segment_dataset(dataset, time_col, window_multiplier=2, days_ahead=1, hours_ahead=None, weeks_ahead=None):
     '''
     Segments the dataset based on the parameters that are passed in.
-    @param dataset - the dataset to segment into windows
-    @param columns - the array of columns from the dataset to be looked at
-    @param window_size - the size of the window (in days) you would like to be looked at. Defualt is 2
-    @param days_ahead - the number of days ahead of the window to get back. Default is 1
+    
+    :param dataset - the dataset to segment into windows
+    :param time_col - the name of the time column in the dataset
+    :param window_multiplier - the size times larger for the window of features to be compared to the target. Default is twice the size
+    :param hours_ahead - the number of hours ahead for the window to get back
+    :param weeks_ahead - the number of weeks ahead to look.
+    :param days_ahead - the number of days ahead of the window to get back. If no other  Default is 1
+
+    
+    :return An array of Dataframes windowed for features and targets
     '''
-    print('WINDOW SIZE', window_size)
-    print('LOOKING AHEAD {} day(s)'.format(days_ahead))
+    
+    # determine that the feature window size will always be twice the size of the features
+    if hours_ahead != None:
+        window_size = hours_ahead * window_multiplier
+    elif weeks_ahead != None:
+        window_size = weeks_ahead * window_multiplier
+    else:
+        window_size =  days_ahead * window_multiplier
     segments = []
     targets = []
-    for (start, end, ahead) in create_windows(dataset, window_size, 1, days_ahead, time_col):
-        segments.append(dataset.iloc[[start, end],:])
-        targets.append(dataset.iloc[[end,ahead],:])
-    return np.array(segments), np.array(targets)
+    if hours_ahead != None:
+        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, hours_ahead=hours_ahead):
+            segments.append(dataset.iloc[start:end,:])
+            targets.append(dataset.iloc[end:ahead,:])
+    elif weeks_ahead != None:
+        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, weeks_ahead=weeks_ahead):
+            segments.append(dataset.iloc[start:end,:])
+            targets.append(dataset.iloc[end:ahead,:])
+    else:
+        # if no option is selected will default to days ahead
+        for (start, end, ahead) in create_windows(dataset, window_size, 1, time_col, days_ahead=days_ahead):
+            segments.append(dataset.iloc[start:end,:])
+            targets.append(dataset.iloc[end:ahead,:])
+    return segments, targets
 
 '''
 Obtains the guesses for the model
