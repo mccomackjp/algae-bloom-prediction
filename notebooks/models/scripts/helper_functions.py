@@ -3,7 +3,7 @@ import pandas as pd
 from math import floor
 from keras import backend as K
 
-def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours_ahead=None, weeks_ahead=None):
+def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours_ahead=None):
     """
     determines the window size for the data set
     :param dataset: The dataset to get windows for
@@ -12,54 +12,29 @@ def create_windows(dataset, window_size, shift, time_col, days_ahead=None, hours
     :param time_col: the time column to determine the window size on
     :param days_ahead: the numer of days ahead to look for the target window
     :param hours_ahead: the number of hours ahead to look for the target window
-    :param weeks_ahead: the number of weeks ahead to look for the target window
    
     :yield: the indexes for the next window 
     """
+    start = dataset[time_col][0]
     
-    start = 0
-    end = 1
-    while end < dataset.shape[0]:
-        start_time = dataset[time_col][start]
-        end_time = dataset[time_col][end]
-        elapsed = end_time - start_time
-        
-        if hours_ahead != None:
-            if floor(elapsed.seconds /3600) == window_size:
-                break
-        elif weeks_ahead != None:
-            if floor(elapsed.days/7) == window_size:
-                break
-        else: 
-            if elapsed.days == window_size:
-                break
-        end += 1
-    ahead = end + 1
-    while ahead < dataset.shape[0]:
-        start_time = dataset[time_col][end]
-        end_time = dataset[time_col][ahead]
-        elapsed = end_time - start_time
-        
-        if hours_ahead != None:
-            if floor(elapsed.seconds / 3600) == hours_ahead:
-                break
-        elif weeks_ahead != None:
-            if floor(elapsed.days / 7) == weeks_ahead:
-                break
-        else:
-            if elapsed.days == days_ahead:
-                break
-        ahead += 1
-    while (ahead < dataset.shape[0]): 
-        yield ( int( start ), int(end), int(ahead))
+    if hours_ahead != None:
+        end_delta = pd.Timedelta(window_size,unit='h')
+    else: 
+        end_delta = pd.Timedelta(window_size, unit='D')    
+    if hours_ahead != None:
+        ahead_delta = end_delta + pd.Timedelta(hours_ahead,unit='h')
+    else:
+        ahead_delta = end_delta + pd.Timedelta(days_ahead, unit='D')
+    print(start)
+    print(end_delta)
+    print(ahead_delta)
+    input()
+    while ( start+ahead_delta < dataset[time_col][dataset.shape[0]-1]): 
+        yield (  start , end_delta, ahead_delta )
         # shift the window 'shift' hour blocks of time
-        start = update_indicies(dataset, time_col, shift, start)
-        end   = update_indicies(dataset, time_col, shift, end)
-        ahead = update_indicies(dataset, time_col, shift, ahead)
-        if start % 200 == 0:
-            print('Data Segmentation {0:.2f}% complete'.format(((ahead) / dataset.shape[0]) * 100 ))
-            
-def segment_dataset(dataset, time_col, shift=1, window_multiplier=2, days_ahead=1, hours_ahead=None, weeks_ahead=None):
+        start = update_indicies( shift, start )
+        
+def segment_dataset(dataset, time_col, shift=1, window_multiplier=2, days_ahead=1, hours_ahead=None):
     """
     Segments the dataset based on the parameters that are passed in.
     
@@ -67,7 +42,6 @@ def segment_dataset(dataset, time_col, shift=1, window_multiplier=2, days_ahead=
     :param time_col: the name of the time column in the dataset
     :param window_multiplier: the size times larger for the window of features to be compared to the target. Default is twice the size
     :param hours_ahead: the number of hours ahead for the window to get back
-    :param weeks_ahead: the number of weeks ahead to look.
     :param days_ahead: the number of days ahead of the window to get back. If no other  Default is 1
 
     :return: An array of Dataframes windowed for features and targets
@@ -75,47 +49,31 @@ def segment_dataset(dataset, time_col, shift=1, window_multiplier=2, days_ahead=
     
     if hours_ahead != None:
         window_size = floor(hours_ahead * window_multiplier)
-    elif weeks_ahead != None:
-        window_size = floor(weeks_ahead * window_multiplier)
     else:
-        window_size =  floor(days_ahead * window_multiplier)
+        window_size = floor(days_ahead * window_multiplier)
     segments = []
     targets  = []
     if hours_ahead != None:
-        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, hours_ahead=hours_ahead):
-            segments.append(dataset.iloc[start:end,:])
-            targets.append(dataset.iloc[end:ahead,:])
-    elif weeks_ahead != None:
-        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, weeks_ahead=weeks_ahead):
-            segments.append(dataset.iloc[start:end,:])
-            targets.append(dataset.iloc[end:ahead,:])
+        for (start, end_delta, ahead_delta) in create_windows(dataset, window_size, shift, time_col, hours_ahead=hours_ahead):
+            segments.append(dataset[start:start + end_delta])
+            targets.append(dataset[start + end_delta: start+ahead_delta])
     else:
         # if no option is selected will default to days ahead
-        for (start, end, ahead) in create_windows(dataset, window_size, shift, time_col, days_ahead=days_ahead):
-            segments.append(dataset.iloc[start:end,:])
-            targets.append(dataset.iloc[end:ahead,:])
+        for (start, end_delta, ahead_delta) in create_windows(dataset, window_size, shift, time_col, days_ahead=days_ahead):
+            segments.append(dataset[start:start + end_delta])
+            targets.append(dataset[start + end_delta: start+ahead_delta])
     return segments, targets
 
-def update_indicies(dataframe, time_col, shift, value):
+def update_indicies(shift, value):
     """
-    updates the indicies with the newest indicies based on the shift value passed in
+    Updates the indicies with the newest indicies based on the shift value passed in
     
-    :param dataframe: the dataframe to get the next indicies of
-    :param time_col: the column that contains the timestamp
-    :param shift: the amout to shift in hours
-    :param value: the value to get the next shifted value of
+    :param shift: the amount to shift the window by
+    :param value: the value to shift
     
-    :return: the next index for the specivied value
+    :return: the next index for the specified value
     """
-    next_index = value + 1
-    while next_index < dataframe.shape[0]:
-        start_time = dataframe[time_col][value]
-        end_time = dataframe[time_col][next_index]
-        elapsed = end_time - start_time
-        if elapsed.seconds / 3600 == shift:
-            break
-        next_index += 1
-    return next_index
+    return value + pd.Timedelta(shift, unit='h')
          
     
 def create_class_predictions(pred):
