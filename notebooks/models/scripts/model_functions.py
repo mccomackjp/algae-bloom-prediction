@@ -36,7 +36,6 @@ def reshape_timeseries(inputs, targets, look_back=1, look_ahead=1):
         new_y.append(targets[i])
     return np.array(new_x), np.array(new_y)
 
-
 def create_model(filters, kernal_size, i_shape, class_number, learning_r, activation='relu', layers=[]):
     '''
     Creates a sequential model 
@@ -61,10 +60,11 @@ def create_model(filters, kernal_size, i_shape, class_number, learning_r, activa
     
     for layer in layers:
         model.add(layer)
-    
+        
     model.compile(loss=ks.losses.categorical_crossentropy,
-                optimizer=ks.optimizers.Adam(lr=learning_r),
-                metrics=['accuracy'])
+                    optimizer=ks.optimizers.Adam(lr=learning_r),
+                    metrics=['accuracy'])
+
     return model
 
 
