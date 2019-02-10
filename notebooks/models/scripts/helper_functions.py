@@ -1,13 +1,30 @@
 import numpy as np
 import pandas as pd
-from math import floor
 from keras import backend as K
 
 
+def extract_percentile(windows, time_column, percentile=0.95):
+    """
+    Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
+
+    :param windows: List of windowed DataFrames to be extracted.
+    :param time_column: name of the datetime object column in the DataFrame
+    :param percentile: float percentage of the value to extract.
+        example: max = 1.0, min = 0.0, average = 0.5
+
+    :return: datetimeIndexed DataFrame of percentiled windows.
+    """
+    extracted = pd.DataFrame()
+    for df in windows:
+        extracted = extracted.append(df.quantile(percentile, numeric_only=False))
+    extracted[time_column + 'Index'] = extracted[time_column]
+    return extracted.set_index(time_column + 'Index')
+
+
 def segment_dataset(df, time_col,
-                     x_win_size=pd.Timedelta(2, unit='d'),
-                     y_win_size=pd.Timedelta(1, unit='d'),
-                     shift=pd.Timedelta(1, unit='h')):
+                    x_win_size=pd.Timedelta(2, unit='d'),
+                    y_win_size=pd.Timedelta(1, unit='d'),
+                    shift=pd.Timedelta(1, unit='h')):
     """
     Segments the data set based on the parameters that are passed in.
 
