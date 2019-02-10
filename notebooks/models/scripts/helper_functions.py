@@ -41,7 +41,7 @@ def segment_dataset(df, time_col,
     start = df[time_col][0]
     end = df[time_col][len(df[time_col]) - 1]
     offset = pd.Timedelta(1, unit='s')  # to remove overlap between x and y
-    while start + x_win_size + y_win_size < end:
+    while start + x_win_size + y_win_size <= end:
         segments.append(df[start:start + x_win_size])
         targets.append(df[start + x_win_size + offset: start + x_win_size + y_win_size])
         start += shift
