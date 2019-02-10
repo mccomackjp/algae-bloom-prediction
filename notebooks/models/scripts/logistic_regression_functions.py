@@ -63,6 +63,20 @@ def split_numerical_categorical(df):
             cat_columns.append(column)
     return df[num_columns], df[cat_columns]
 
+def get_matching_strings(a, b):
+    """
+    Gets a list of strings that are in both lists a and b.
+
+    :param a: List of strings to check against b.
+    :param b: List of strings to check against a.
+    :return: List of matching strings.
+    """
+    matches = []
+    for string_a in a:
+        for string_b in b:
+            if string_a == string_b:
+                matches.append(string_a)
+    return matches
 
 def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
                         null_model=False):
@@ -82,10 +96,12 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     df_test_num, df_test_cat = split_numerical_categorical(testing_df)
 
     x_train = df_train_num[x_columns].astype('float64').values
-    y_train = df_train_num[y_column].astype('float64').values
-
     x_test = df_test_num[x_columns].astype('float64').values
-    y_test = df_test_num[y_column].astype('float64').values
+
+    y_train = df_train_cat if y_column in df_train_cat.columns else df_train_num
+    y_test = df_test_cat if y_column in df_test_cat.columns else df_test_num
+    y_train = y_train[y_column].astype('float64').values
+    y_test = y_test[y_column].astype('float64').values
 
     # Scale the numerical data
     scaler = StandardScaler()
@@ -99,10 +115,12 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
 
     # add categorical columns
     if len(df_train_cat.columns) > 0 and len(df_test_cat.columns) > 0:
-        x_train_cat = pd.get_dummies(df_train_cat).astype('float64').values
-        x_test_cat = pd.get_dummies(df_test_cat).astype('float64').values
-        x_train = np.hstack([x_train, x_train_cat])
-        x_test = np.hstack([x_test, x_test_cat])
+        cat_columns = get_matching_strings(x_columns, df_train_cat.columns)
+        if len(cat_columns) > 0:
+            x_train_cat = pd.get_dummies(df_train_cat[cat_columns]).astype('float64').values
+            x_test_cat = pd.get_dummies(df_test_cat[cat_columns]).astype('float64').values
+            x_train = np.hstack([x_train, x_train_cat])
+            x_test = np.hstack([x_test, x_test_cat])
 
     if null_model:
         # Create null model if required
