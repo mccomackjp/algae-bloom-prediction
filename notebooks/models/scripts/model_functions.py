@@ -7,7 +7,7 @@ import pandas as pd
 
 def reshape_timeseries(inputs, targets, look_back=1, look_ahead=1):
     '''
-	Reshapes the inputs from 
+    Reshapes the inputs from 
     (num_samples, num_features) to (new_num_samples, time_steps, num_features)
     with matching targets for time series data.
     
@@ -35,7 +35,6 @@ def reshape_timeseries(inputs, targets, look_back=1, look_ahead=1):
         i += look_back + look_ahead
         new_y.append(targets[i])
     return np.array(new_x), np.array(new_y)
-	
 
 def create_model(filters, kernal_size, i_shape, class_number, learning_r, activation='relu', layers=[]):
     '''
@@ -65,6 +64,7 @@ def create_model(filters, kernal_size, i_shape, class_number, learning_r, activa
     model.compile(loss=ks.losses.categorical_crossentropy,
                     optimizer=ks.optimizers.Adam(lr=learning_r),
                     metrics=['accuracy'])
+
     return model
 
 
