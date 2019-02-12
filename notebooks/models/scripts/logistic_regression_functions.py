@@ -1,11 +1,9 @@
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import LabelEncoder
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import recall_score, precision_score, confusion_matrix
+from sklearn.metrics import recall_score, precision_score, confusion_matrix, accuracy_score
 from sklearn.metrics import roc_curve, auc
 import pandas as pd
 
@@ -63,6 +61,7 @@ def split_numerical_categorical(df):
             cat_columns.append(column)
     return df[num_columns], df[cat_columns]
 
+
 def get_matching_strings(a, b):
     """
     Gets a list of strings that are in both lists a and b.
@@ -77,6 +76,7 @@ def get_matching_strings(a, b):
             if string_a == string_b:
                 matches.append(string_a)
     return matches
+
 
 def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
                         null_model=False):
@@ -141,7 +141,7 @@ def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
-    :return: tuple of recall, precision, and confusing matrix metrics,
+    :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Create training and testing numpy arrays
@@ -156,10 +156,11 @@ def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
     model.fit(x_train, y_train)
     predictions = model.predict(x_test)
     predictions_prob = model.predict_proba(x_test)
+    accuracy = accuracy_score(y_test, predictions)
     recall = recall_score(y_test, predictions)
     precision = precision_score(y_test, predictions)
     cm = confusion_matrix(y_test, predictions)
-    return recall, precision, cm, predictions, predictions_prob, model
+    return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
 def roc_plot(actual, predictions):
@@ -178,9 +179,9 @@ def roc_plot(actual, predictions):
     plt.plot(fpr, tpr)
 
 
-def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
+def sort_columns_by_accuracy(training_df, testing_df, x_columns, y_column):
     """
-    Trains and sorts each column in the x_columns by recall
+    Trains and sorts each column in the x_columns by accuracy
     :param training_df: Data frame to create the training data from.
     :param testing_df: Data frame to create the testing data from.
     :param x_columns: Columns to be used as inputs.
@@ -190,8 +191,9 @@ def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
     models = {}
     for column in x_columns:
         print("Training model with:", column)
-        recall, precision, cm, _, _, _ = train_model(training_df, testing_df, [column], y_column)
-        models[column] = recall
+        accuracy, recall, precision, cm, _, _, _ = train_model(training_df, testing_df, [column], y_column)
+        models[column] = accuracy
+        print("Accuracy", accuracy)
         print("Recall:", recall)
         print("Precision", precision)
         print("Confusion Matrix:\n", cm)
@@ -200,7 +202,7 @@ def sort_columns_by_recall(training_df, testing_df, x_columns, y_column):
     # sort columns by best recall first
     sorted_columns = sorted(models, key=models.get, reverse=True)
     for column in sorted_columns:
-        print("{} recall: {}".format(column, models[column]))
+        print("{} accuracy: {}".format(column, models[column]))
     return sorted_columns
 
 
@@ -217,19 +219,20 @@ def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Start with a base null model
-    recall, precision, cm, predictions, predictions_prob, model = train_model(
+    accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
         training_df, testing_df, x_columns, y_column, null_model=True)
     greedy_columns = []
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
-        temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, temp_model = train_model(
-            training_df, testing_df, temp_columns, y_column)
+        temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
+            temp_model = train_model(training_df, testing_df, temp_columns, y_column)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
         if temp_recall > recall:
             print("\nUpdating greedy model")
             greedy_columns = temp_columns
+            accuracy = temp_accuracy
             recall = temp_recall
             precision = temp_precision
             cm = temp_cm
@@ -239,7 +242,8 @@ def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
         print()
 
     print("Final greedy columns:", greedy_columns)
+    print("Final greedy accuracy", accuracy)
     print("Final greedy recall:", recall)
     print("Final greedy precision:", recall)
     print("Final greedy confusion matrix:\n", cm)
-    return recall, precision, cm, predictions, predictions_prob, model
+    return accuracy, recall, precision, cm, predictions, predictions_prob, model
