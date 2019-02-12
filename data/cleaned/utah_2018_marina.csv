@@ -1,4 +1,4 @@
-Time America/Boise UTC-06:00,Temperature C,Sp Cond uS/cm,pH mV,pH,Turbidity NTU,Chlorophyll ug/L,Chlorophyll RFU,ODOSat %,ODO mg/L,BGA-Phycocyanin RFU,Wiper Pos V,Cable Pwr V,Battery V,FDOM RFU
+Time America/Boise UTC-06:00,Temp C,Sp Cond (uS/cm),pH (mV),pH,Turbidity (NTU),Chlorophyll (ug/L),Chlorophyll RFU,ODOSat%,ODO (mg/L),BGA-Phycocyanin RFU,Wiper Pos V,Cable Pwr V,Battery V,FDOM RFU
 4/11/2018 10:30,11.88,1782,-146.1,8.2,42.49,15.3,4.1,89.1,9.58,0.6,1,13,5.2,1.2
 4/11/2018 10:45,11.78,1783,-143.7,8.15,42.89,16.6,4.4,87.4,9.42,0.6,1,13,5.3,1.1
 4/11/2018 11:00,11.79,1784,-144.3,8.17,41.24,18.2,4.9,89,9.58,0.7,1,13,5.2,1.2
