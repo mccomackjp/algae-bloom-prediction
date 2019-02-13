@@ -2,7 +2,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import recall_score, precision_score, confusion_matrix, accuracy_score
 from sklearn.metrics import roc_curve, auc
 import pandas as pd
@@ -130,11 +129,11 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
-                null_model=False):
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
     """
-    Trains a linear regression model on the given training and testing data frames.
+    Trains a Scikit-Learn classification model on the given training and testing data frames.
 
+    :param model: Scikit-Learn classification model
     :param training_df: Data frame to create the training data from.
     :param testing_df: Data frame to create the testing data from.
     :param x_columns: Columns to be used as inputs.
@@ -152,7 +151,6 @@ def train_model(training_df, testing_df, x_columns, y_column, max_iter=25000,
                                                            null_model)
 
     # Train the model
-    model = SGDClassifier(max_iter=max_iter, loss="log")
     model.fit(x_train, y_train)
     predictions = model.predict(x_test)
     predictions_prob = model.predict_proba(x_test)
@@ -179,20 +177,28 @@ def roc_plot(actual, predictions):
     plt.plot(fpr, tpr)
 
 
-def sort_columns_by_accuracy(training_df, testing_df, x_columns, y_column):
+def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
+                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False):
     """
-    Trains and sorts each column in the x_columns by accuracy
+    Trains and sorts each column in the x_columns by accuracy, recall, or precision
+
+
+    :param model: Scikit-Learn classification model
     :param training_df: Data frame to create the training data from.
     :param testing_df: Data frame to create the testing data from.
     :param x_columns: Columns to be used as inputs.
     :param y_column: Target column to be predicted.
+    :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
+    :param optimize_recall: True if you wish optimize by recall (default is False)
+    :param optimize_precision: True if you wish optimize by precision (default is False)
     :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
         print("Training model with:", column)
-        accuracy, recall, precision, cm, _, _, _ = train_model(training_df, testing_df, [column], y_column)
-        models[column] = accuracy
+        accuracy, recall, precision, cm, _, _, _ = train_model(
+            model, training_df, testing_df, [column], y_column)
+        models[column] = (accuracy * optimize_accuracy) + (recall * optimize_recall) + (precision * optimize_precision)
         print("Accuracy", accuracy)
         print("Recall:", recall)
         print("Precision", precision)
@@ -206,10 +212,11 @@ def sort_columns_by_accuracy(training_df, testing_df, x_columns, y_column):
     return sorted_columns
 
 
-def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns):
     """
     Creates a greedy model based on columns which only improve recall.
 
+    :param model: Scikit-Learn classification model
     :param training_df: Data frame to create the training data from.
     :param testing_df: Data frame to create the testing data from.
     :param x_columns: Columns to be used as inputs.
@@ -220,13 +227,13 @@ def greedy_model(training_df, testing_df, x_columns, y_column, sorted_columns):
     """
     # Start with a base null model
     accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-        training_df, testing_df, x_columns, y_column, null_model=True)
+        model, training_df, testing_df, x_columns, y_column, null_model=True)
     greedy_columns = []
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(training_df, testing_df, temp_columns, y_column)
+            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
