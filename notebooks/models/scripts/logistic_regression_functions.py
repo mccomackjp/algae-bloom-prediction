@@ -237,7 +237,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
-        if temp_recall > recall:
+        if temp_accuracy > accuracy:
             print("\nUpdating greedy model")
             greedy_columns = temp_columns
             accuracy = temp_accuracy
