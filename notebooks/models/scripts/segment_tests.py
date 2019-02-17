@@ -72,6 +72,8 @@ class TestDataSegment(unittest.TestCase):
         for i in range(0, len(y_averages)):
             self.assertAlmostEqual(y_averages[i], y_df['data'].values[i])
 
+    # TODO Add more tests for extract
+
 
 if __name__ == '__main__':
     unittest.main()
