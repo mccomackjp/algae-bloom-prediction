@@ -205,7 +205,7 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
         print("Confusion Matrix:\n", cm)
         print()
 
-    # sort columns by best recall first
+    # sort columns by the sum of selected metrics first
     sorted_columns = sorted(models, key=models.get, reverse=True)
     for column in sorted_columns:
         print("{} accuracy: {}".format(column, models[column]))
