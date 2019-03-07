@@ -94,8 +94,11 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     df_train_num, df_train_cat = split_numerical_categorical(training_df)
     df_test_num, df_test_cat = split_numerical_categorical(testing_df)
 
-    x_train = df_train_num[x_columns].astype('float64').values
-    x_test = df_test_num[x_columns].astype('float64').values
+    # Select only the x columns in the numerical data frame.
+    x_columns_num = list(set(x_columns).intersection(df_train_num.columns))
+
+    x_train = df_train_num[x_columns_num].astype('float64').values
+    x_test = df_test_num[x_columns_num].astype('float64').values
 
     y_train = df_train_cat if y_column in df_train_cat.columns else df_train_num
     y_test = df_test_cat if y_column in df_test_cat.columns else df_test_num
@@ -103,21 +106,23 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_test = y_test[y_column].astype('float64').values
 
     # Scale the numerical data
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
+    if len(x_columns_num) > 0:
+        scaler = StandardScaler()
+        x_train = scaler.fit_transform(x_train)
+        x_test = scaler.transform(x_test)
 
-    # impute missing values
-    imputer = SimpleImputer(missing_values=np.nan)
-    x_train = imputer.fit_transform(x_train)
-    x_test = imputer.transform(x_test)
+        # impute missing values
+        imputer = SimpleImputer(missing_values=np.nan)
+        x_train = imputer.fit_transform(x_train)
+        x_test = imputer.transform(x_test)
 
     # add categorical columns
     if len(df_train_cat.columns) > 0 and len(df_test_cat.columns) > 0:
-        cat_columns = get_matching_strings(x_columns, df_train_cat.columns)
-        if len(cat_columns) > 0:
-            x_train_cat = pd.get_dummies(df_train_cat[cat_columns]).astype('float64').values
-            x_test_cat = pd.get_dummies(df_test_cat[cat_columns]).astype('float64').values
+        # Select only x columns in the categorical data frame.
+        x_columns_cat = list(set(x_columns).intersection(df_train_cat.columns))
+        if len(x_columns_cat) > 0:
+            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat]).astype('float64').values
+            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat]).astype('float64').values
             x_train = np.hstack([x_train, x_train_cat])
             x_test = np.hstack([x_test, x_test_cat])
 
@@ -233,7 +238,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
+        temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
@@ -252,6 +257,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy columns:", greedy_columns)
     print("Final greedy accuracy", accuracy)
     print("Final greedy recall:", recall)
-    print("Final greedy precision:", recall)
+    print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
