@@ -3,6 +3,41 @@ import pandas as pd
 from keras import backend as K
 
 
+def bin_series(series, bins, quantile_binning=False):
+    """
+    Bins a series into categories.
+
+    :param series: Series to be binned.
+    :param bins: Number of bins to create.
+    :param quantile_binning: Whether to use quantile based binning.
+    :return: Binned Series object
+    """
+    if quantile_binning:
+        labels = [str(x) for x in set(pd.qcut(series, q=bins))]
+        return pd.qcut(series, q=bins, labels=labels)
+    else:
+        labels = [str(x) for x in set(pd.cut(series, bins=bins))]
+        return pd.cut(series, bins=bins, labels=labels)
+
+
+def bin_df(df, bins, quantile_binning=False):
+    """
+    Bins each column in the given DataFrame
+    :param df: DataFrame to bin
+    :param bins: Number of bins to create.
+    :param quantile_binning: Whether to use quantile based binning.
+    :return: DataFrame with additional binned category columns.
+    """
+    new_df = pd.DataFrame(df[[]])
+    new_columns = []
+    for col in df.columns:
+        new_col = '{}_{}_q_bins' if quantile_binning else '{}_{}_bins'
+        new_col = new_col.format(col, bins)
+        new_columns.append(new_col)
+        new_df[new_col.format(col)] = bin_series(df[col], bins, quantile_binning)
+    return new_df, new_columns
+
+
 def data_window_reduction(df, time_column, target_column,
                           x_win_size=pd.Timedelta(2, unit='d'),
                           y_win_size=pd.Timedelta(1, unit='d'),

@@ -217,7 +217,7 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     return sorted_columns
 
 
-def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns):
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[]):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -227,6 +227,8 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     :param x_columns: Columns to be used as inputs.
     :param y_column: Target column to be predicted.
     :param sorted_columns: List of sorted columns by recall.
+    :param base_columns: Base columns to start the greedy model with.
+
     :return: tuple of recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
     """
@@ -257,6 +259,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy columns:", greedy_columns)
     print("Final greedy accuracy", accuracy)
     print("Final greedy recall:", recall)
-    print("Final greedy precision:", recall)
+    print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
