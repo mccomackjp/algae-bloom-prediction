@@ -3,6 +3,35 @@ import pandas as pd
 from keras import backend as K
 
 
+def data_window_reduction(df, time_column, target_column,
+                          x_win_size=pd.Timedelta(2, unit='d'),
+                          y_win_size=pd.Timedelta(1, unit='d'),
+                          shift=pd.Timedelta(1, unit='h'),
+                          percentile=0.95):
+    """
+    Reduces data based on a sliding window method.
+
+    :param df: DataFrame to reduce
+    :param time_column: name of the datetime object column in the DataFrame
+    :param target_column: Column which is the target for predictions.
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param y_win_size: Timedelta for the size of target windows.
+    :param shift: Timedelta for the amount to shift windows by.
+    :param percentile: float percentage of the value to extract.
+        example: max = 1.0, min = 0.0, average = 0.5
+    :return: Reduced DataFrame.
+    """
+    print("Segmenting...")
+    x_windows, y_windows = segment_dataset(df, time_column, x_win_size, y_win_size, shift)
+    print("Extracting feature windows...")
+    x_windows = extract_percentile(x_windows, time_column, percentile)
+    print("Extracting target windows...")
+    y_windows = extract_percentile(y_windows, time_column, percentile)
+    print("Combining extractions...")
+    x_windows[target_column] = y_windows[target_column].values
+    return x_windows
+
+
 def extract_percentile(windows, time_column, percentile=0.95):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
