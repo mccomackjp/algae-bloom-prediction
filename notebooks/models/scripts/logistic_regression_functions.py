@@ -235,7 +235,9 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     # Start with a base null model
     accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
         model, training_df, testing_df, x_columns, y_column, null_model=True)
-    greedy_columns = []
+    greedy_columns = base_columns
+    # Remove the base columns from the greedy columns
+    sorted_columns = set(sorted_columns).difference(greedy_columns)
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
