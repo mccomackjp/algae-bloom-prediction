@@ -252,6 +252,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy columns:", greedy_columns)
     print("Final greedy accuracy", accuracy)
     print("Final greedy recall:", recall)
-    print("Final greedy precision:", recall)
+    print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
