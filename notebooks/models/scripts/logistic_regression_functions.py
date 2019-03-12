@@ -77,6 +77,54 @@ def get_matching_strings(a, b):
     return matches
 
 
+def scale_columns(train, test, scaler=StandardScaler()):
+    """
+    Scales the columns in the train and test set
+    
+    :param train: The Dataframe of numerical columns that will be used for training models
+    :param test: The dataframe of numerical of columns that will be used for scaling models
+    :param scaler: the scalar that will be used defaults to StandardScaler()
+    
+    :return: ret_train, ret_test tuple of the scaled values
+    """
+    
+    ret_train = scaler.fit_transform(train)
+    ret_test = scaler.transform(test)
+    return ret_train, ret_test
+
+def alter_columns(train, test, op, columns=[]):
+    """
+    Alters the columns based on the numpy mathematical operation that is passed in
+
+    :param train: the training DataFrame to have the columns altered
+    :param test: the testing DataFrame to have the columns altered
+    :param op: the mathematical operation to do on the columns
+    :param columns: The columns that you would like to apply the operations to
+
+    :return: ret_train, ret_test with the altered values 
+    """
+
+    if len(columns) > 0:
+        return op(train[columns]), op(test[columns])
+    else:
+        return op(train), op(test)
+
+def impute_columns(train, test, imputer):
+    
+    """
+    imputes the columns based on the DataFrame that is passed in
+    
+    :param train: the  DataFrame that will be used for training
+    :param test: the DataFrame that will be used for testin
+    :param imputer: the imputer that will be used. 
+    
+    :return: ret_train, ret_test tuple of the imputed values
+    """
+    ret_train = imputer.fit_transform(train)
+    ret_test = imputer.transform(test)
+    
+    return ret_train, ret_test
+
 def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
                         null_model=False):
     """
@@ -105,16 +153,15 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
 
-    # Scale the numerical data
     if len(x_columns_num) > 0:
+        
+        # Scale the numerical data
         scaler = StandardScaler()
-        x_train = scaler.fit_transform(x_train)
-        x_test = scaler.transform(x_test)
+        x_train, x_test = scale_columns(x_train, x_test, scaler)
 
         # impute missing values
         imputer = SimpleImputer(missing_values=np.nan)
-        x_train = imputer.fit_transform(x_train)
-        x_test = imputer.transform(x_test)
+        x_train, x_test = impute_columns(x_train, x_test, imputer)
 
     # add categorical columns
     if len(df_train_cat.columns) > 0 and len(df_test_cat.columns) > 0:
@@ -132,7 +179,6 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
         x_test = np.zeros(x_test.shape)
 
     return x_train, y_train, x_test, y_test
-
 
 def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
     """
