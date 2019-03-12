@@ -82,7 +82,7 @@ def scale_columns(train, test, scaler=StandardScaler()):
     Scales the columns in the train and test set
     
     :param train: The Dataframe of numerical columns that will be used for training models
-    :param test: The dataframe of numerical of columns that will be used for scaling models
+    :param test: The Dataframe of numerical of columns that will be used for scaling models
     :param scaler: the scalar that will be used defaults to StandardScaler()
     
     :return: ret_train, ret_test tuple of the scaled values
@@ -99,18 +99,17 @@ def alter_columns(train, test, op):
 
     :param train: the training Numpy array to have the columns altered
     :param test: the testing Numpy array to have the columns altered
-    :param op: the mathematical operation to do on the columns
+    :param op: the functools.partial(Numpy mathematical) operation to do on the Data
 
-    :return: ret_train, ret_test with the altered values for the NP array
+    :return: train, test with the altered values for the NP array
     """
-    print(op([1,2,3]))
     return op(train), op(test)
 
 
 def impute_columns(train, test, imputer):
     
     """
-    imputes the columns based on the DataFrame that is passed in
+    Imputes the columns based on the DataFrame that is passed in
     
     :param train: The  Data frame that will be used for training
     :param test: The Data frame that will be used for testin
@@ -191,7 +190,7 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
-    :param mathop: The numpy mathematical operation to be done on the series
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
 
@@ -240,7 +239,6 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
-
     :param model: Scikit-Learn classification model
     :param training_df: Data frame to create the training data from.
     :param testing_df: Data frame to create the testing data from.
@@ -249,6 +247,8 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+
     :return: List of sorted column names
     """
     models = {}
@@ -280,6 +280,8 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     :param x_columns: Columns to be used as inputs.
     :param y_column: Target column to be predicted.
     :param sorted_columns: List of sorted columns by recall.
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+
     :return: tuple of recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
     """
