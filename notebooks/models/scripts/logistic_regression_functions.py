@@ -198,7 +198,8 @@ def roc_plot(actual, predictions):
 
 
 def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
-                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False):
+                           optimize_accuracy=True, optimize_recall=False,
+                           optimize_precision=False, verbose=1):
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
@@ -211,24 +212,28 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
+    :param verbose: 1 = print results. 0 = print nothing.
     :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
-        print("Training model with:", column)
+        if verbose:
+            print("Training model with:", column)
         accuracy, recall, precision, cm, _, _, _ = train_model(
             model, training_df, testing_df, [column], y_column)
         models[column] = (accuracy * optimize_accuracy) + (recall * optimize_recall) + (precision * optimize_precision)
-        print("Accuracy", accuracy)
-        print("Recall:", recall)
-        print("Precision", precision)
-        print("Confusion Matrix:\n", cm)
-        print()
+        if verbose:
+            print("Accuracy", accuracy)
+            print("Recall:", recall)
+            print("Precision", precision)
+            print("Confusion Matrix:\n", cm)
+            print()
 
     # sort columns by the sum of selected metrics first
     sorted_columns = sorted(models, key=models.get, reverse=True)
-    for column in sorted_columns:
-        print("{} metric value: {}".format(column, models[column]))
+    if verbose:
+        for column in sorted_columns:
+            print("{} metric value: {}".format(column, models[column]))
     return sorted_columns
 
 
