@@ -61,6 +61,21 @@ def split_numerical_categorical(df):
     return df[num_columns], df[cat_columns]
 
 
+def remove_matching_strings(original, to_remove):
+    """
+    Removes a list of strings from the original list while maintaining the order.
+
+    :param original: list to remove from.
+    :param to_remove: list to check if exists in original.
+    :return: list of strings in "original" not in "to_remove"
+    """
+    result = []
+    for s in original:
+        if s not in to_remove:
+            result.append(s)
+    return result
+
+
 def get_matching_strings(a, b):
     """
     Gets a list of strings that are in both lists a and b.
@@ -270,7 +285,8 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     return sorted_columns
 
 
-def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, mathop=None):
+
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -280,15 +296,26 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     :param x_columns: Columns to be used as inputs.
     :param y_column: Target column to be predicted.
     :param sorted_columns: List of sorted columns by recall.
+    :param base_columns: Base columns to start the greedy model with.
     :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: tuple of recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Start with a base null model
-    accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-        model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
-    greedy_columns = []
+    if len(base_columns) > 0:
+        accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
+            model, training_df, testing_df, base_columns, y_column, mathop=mathop)
+    else:
+        accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
+          model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+    greedy_columns = base_columns
+    # Remove the base columns from the greedy columns
+    print('greedy_columns:', greedy_columns)
+    print('sorted_columns:', sorted_columns)
+    sorted_columns = remove_matching_strings(sorted_columns, greedy_columns)
+    print('adjusted sorted_columns:', sorted_columns)
+
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
