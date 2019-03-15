@@ -77,6 +77,52 @@ def get_matching_strings(a, b):
     return matches
 
 
+def scale_columns(train, test, scaler=StandardScaler()):
+    """
+    Scales the columns in the train and test set
+    
+    :param train: The Dataframe of numerical columns that will be used for training models
+    :param test: The Dataframe of numerical of columns that will be used for scaling models
+    :param scaler: the scalar that will be used defaults to StandardScaler()
+    
+    :return: ret_train, ret_test tuple of the scaled values
+    """
+    
+    ret_train = scaler.fit_transform(train)
+    ret_test = scaler.transform(test)
+    return ret_train, ret_test
+
+
+def alter_columns(train, test, op):
+    """
+    Alters the columns based on the numpy mathematical operation that is passed in
+
+    :param train: the training Numpy array to have the columns altered
+    :param test: the testing Numpy array to have the columns altered
+    :param op: the functools.partial(Numpy mathematical) operation to do on the Data
+
+    :return: train, test with the altered values for the NP array
+    """
+    return op(train), op(test)
+
+
+def impute_columns(train, test, imputer):
+    
+    """
+    Imputes the columns based on the DataFrame that is passed in
+    
+    :param train: The  Data frame that will be used for training
+    :param test: The Data frame that will be used for testin
+    :param imputer: The imputer that will be used.
+    
+    :return: ret_train, ret_test tuple of the imputed values
+    """
+    ret_train = imputer.fit_transform(train)
+    ret_test = imputer.transform(test)
+    
+    return ret_train, ret_test
+
+
 def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
                         null_model=False):
     """
@@ -94,30 +140,33 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     df_train_num, df_train_cat = split_numerical_categorical(training_df)
     df_test_num, df_test_cat = split_numerical_categorical(testing_df)
 
-    x_train = df_train_num[x_columns].astype('float64').values
-    x_test = df_test_num[x_columns].astype('float64').values
+    # Select only the x columns in the numerical data frame.
+    x_columns_num = list(set(x_columns).intersection(df_train_num.columns))
+
+    x_train = df_train_num[x_columns_num].astype('float64').values
+    x_test = df_test_num[x_columns_num].astype('float64').values
 
     y_train = df_train_cat if y_column in df_train_cat.columns else df_train_num
     y_test = df_test_cat if y_column in df_test_cat.columns else df_test_num
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
 
-    # Scale the numerical data
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
+    if len(x_columns_num) > 0:
+        # Scale the numerical data
+        scaler = StandardScaler()
+        x_train, x_test = scale_columns(x_train, x_test, scaler)
 
-    # impute missing values
-    imputer = SimpleImputer(missing_values=np.nan)
-    x_train = imputer.fit_transform(x_train)
-    x_test = imputer.transform(x_test)
+        # impute missing values
+        imputer = SimpleImputer(missing_values=np.nan)
+        x_train, x_test = impute_columns(x_train, x_test, imputer)
 
     # add categorical columns
     if len(df_train_cat.columns) > 0 and len(df_test_cat.columns) > 0:
-        cat_columns = get_matching_strings(x_columns, df_train_cat.columns)
-        if len(cat_columns) > 0:
-            x_train_cat = pd.get_dummies(df_train_cat[cat_columns]).astype('float64').values
-            x_test_cat = pd.get_dummies(df_test_cat[cat_columns]).astype('float64').values
+        # Select only x columns in the categorical data frame.
+        x_columns_cat = list(set(x_columns).intersection(df_train_cat.columns))
+        if len(x_columns_cat) > 0:
+            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat]).astype('float64').values
+            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat]).astype('float64').values
             x_train = np.hstack([x_train, x_train_cat])
             x_test = np.hstack([x_test, x_test_cat])
 
@@ -129,7 +178,8 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False,
+                mathop=None):
     """
     Trains a Scikit-Learn classification model on the given training and testing data frames.
 
@@ -140,7 +190,10 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
+
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Create training and testing numpy arrays
@@ -149,6 +202,9 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            x_columns,
                                                            y_column,
                                                            null_model)
+
+    if mathop is not None:
+        x_train, x_test = alter_columns(x_train, x_test, mathop)
 
     # Train the model
     model.fit(x_train, y_train)
@@ -178,10 +234,10 @@ def roc_plot(actual, predictions):
 
 
 def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
-                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False):
+                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False,
+                           mathop=None):
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
-
 
     :param model: Scikit-Learn classification model
     :param training_df: Data frame to create the training data from.
@@ -191,13 +247,15 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+
     :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
         print("Training model with:", column)
         accuracy, recall, precision, cm, _, _, _ = train_model(
-            model, training_df, testing_df, [column], y_column)
+            model, training_df, testing_df, [column], y_column, mathop=mathop)
         models[column] = (accuracy * optimize_accuracy) + (recall * optimize_recall) + (precision * optimize_precision)
         print("Accuracy", accuracy)
         print("Recall:", recall)
@@ -212,7 +270,7 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     return sorted_columns
 
 
-def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns):
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, mathop=None):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -222,18 +280,20 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     :param x_columns: Columns to be used as inputs.
     :param y_column: Target column to be predicted.
     :param sorted_columns: List of sorted columns by recall.
+    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+
     :return: tuple of recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Start with a base null model
     accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-        model, training_df, testing_df, x_columns, y_column, null_model=True)
+        model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
     greedy_columns = []
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
+            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column, mathop=mathop)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
@@ -252,6 +312,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy columns:", greedy_columns)
     print("Final greedy accuracy", accuracy)
     print("Final greedy recall:", recall)
-    print("Final greedy precision:", recall)
+    print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
