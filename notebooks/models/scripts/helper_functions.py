@@ -57,30 +57,36 @@ def data_window_reduction(df, time_column, target_column,
     :return: Reduced DataFrame.
     """
     print("Segmenting...")
-    x_windows, y_windows = segment_dataset(df, time_column, x_win_size, y_win_size, shift)
+    x_windows, y_windows = segment_dataset(df, time_column, x_win_size=x_win_size, y_win_size=y_win_size, shift=shift)
     print("Extracting feature windows...")
-    x_windows = extract_percentile(x_windows, time_column, percentile)
+    x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
     print("Extracting target windows...")
-    y_windows = extract_percentile(y_windows, time_column, percentile)
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile, debug=True)
     print("Combining extractions...")
     x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95):
+def extract_percentile(windows, time_column, percentile=0.95, interpolation='nearest',debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
+    :param tinterpolation: This optional parameter specifies the interpolation method to use, when the desired quantile lies between two data points i and j:
+        linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2.
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
 
     :return: datetimeIndexed DataFrame of percentiled windows.
     """
     extracted = pd.DataFrame()
-    for df in windows:
-        extracted = extracted.append(df.quantile(percentile, numeric_only=False))
+    for df in windows:                     
+        extracted = extracted.append(df.quantile(percentile, interpolation=interpolation, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
     return extracted.set_index(time_column + 'Index')
 

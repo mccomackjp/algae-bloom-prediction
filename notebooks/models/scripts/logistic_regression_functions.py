@@ -105,6 +105,7 @@ def scale_columns(train, test, scaler=StandardScaler()):
     
     ret_train = scaler.fit_transform(train)
     ret_test = scaler.transform(test)
+    
     return ret_train, ret_test
 
 
@@ -193,7 +194,7 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False,
                 mathop=None):
     """
     Trains a Scikit-Learn classification model on the given training and testing data frames.
@@ -215,13 +216,13 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            testing_df,
                                                            x_columns,
                                                            y_column,
-                                                           null_model)
+                                                           null_model=null_model)
 
+   
     if mathop is not None:
         x_train, x_test = alter_columns(x_train, x_test, mathop)
-
     # Train the model
-    model.fit(x_train, y_train)
+    model.fit(x_train , y_train)
     predictions = model.predict(x_test)
     predictions_prob = model.predict_proba(x_test)
     accuracy = accuracy_score(y_test, predictions)
@@ -248,13 +249,8 @@ def roc_plot(actual, predictions):
 
 
 def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
-<<<<<<< HEAD
-                           optimize_accuracy=True, optimize_recall=False,
-                           optimize_precision=False, verbose=1):
-=======
-                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False
-                           mathop=None):
->>>>>>> bb0e0bb0e7086962701ead2fca039600fdeadc69
+                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False,
+                           mathop=None, verbose=1):
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
@@ -266,12 +262,9 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
-<<<<<<< HEAD
     :param verbose: 1 = print results. 0 = print nothing.
-=======
     :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
->>>>>>> bb0e0bb0e7086962701ead2fca039600fdeadc69
     :return: List of sorted column names
     """
     models = {}
@@ -297,7 +290,7 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
 
 
 def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[],
-mathop=None):
+                mathop=None):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -319,7 +312,7 @@ mathop=None):
             model, training_df, testing_df, base_columns, y_column, mathop=mathop)
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-            model, training_df, testing_df, x_columns, y_column, null_model=True,, mathop=mathop)
+            model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
     print('greedy_columns:', greedy_columns)
