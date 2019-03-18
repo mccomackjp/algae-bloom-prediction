@@ -166,6 +166,7 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
 
+
     if len(x_columns_num) > 0:
         # Scale the numerical data
         scaler = StandardScaler()
