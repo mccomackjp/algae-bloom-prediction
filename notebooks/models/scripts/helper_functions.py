@@ -146,3 +146,27 @@ def save_model(model, model_name, model_version):
     with K.get_session() as sess:
         tf.saved_model.simple_save(sess, tf_path, inputs={'input': model.input},
                                    outputs={t.name: t for t in model.outputs})
+
+        
+def create_time_of_day(x):
+    """
+    creates a time Category that will coorilate to the Datetime object that is passed in
+    
+    :param x: the Datetime object to create the time of day for
+    
+    :return: teh string representing the time of day.
+    """
+    retval = ''
+    if x.hour >= 22 or x.hour <= 4: 
+        retval = 'night'
+    if x.hour <= 6: 
+        retval = 'dawn'
+    elif x.hour <= 10:
+        retval = 'morning'
+    elif x.hour <= 14:
+        retval = 'afternoon'
+    elif x.hour <= 18:
+        retval = 'dusk'
+    else:
+        retval = 'evening'
+    return retval
