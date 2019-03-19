@@ -159,7 +159,7 @@ def create_time_of_day(x):
     retval = ''
     if x.hour >= 22 or x.hour <= 4: 
         retval = 'night'
-    if x.hour <= 6: 
+    elif x.hour <= 6: 
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
