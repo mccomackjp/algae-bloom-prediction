@@ -67,13 +67,13 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95, interpolation='nearest',debug=False):
+def extract_percentile(windows, time_column, percentile=0.95, interpolation='linear', debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
-    :param tinterpolation: This optional parameter specifies the interpolation method to use, when the desired quantile lies between two data points i and j:
+    :param interpolation: This optional parameter specifies the interpolation method to use, when the desired quantile lies between two data points i and j:
         linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
         lower: i.
         higher: j.
