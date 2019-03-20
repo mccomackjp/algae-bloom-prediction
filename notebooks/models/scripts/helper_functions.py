@@ -1,6 +1,50 @@
 import numpy as np
 import pandas as pd
 from keras import backend as K
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scripts.logistic_regression_functions as lrf
+
+
+def create_correlation_plots(dataframe, target, figsize=(10, 50)):
+    """
+    Creates a series of numpy correlation plots between all numerical columns and the target column.
+
+    :param dataframe: DataFrame to plot.
+    :param target: Target column to compare with.
+    :param figsize: Size of each plot.
+    :return: matplot lib subplots.
+    """
+    numerical_columns = []
+    for col in dataframe.columns:
+        if lrf.is_numerical(dataframe[col]):
+            numerical_columns.append(col)
+    f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
+    for i, col in enumerate(numerical_columns):
+        data = np.correlate(dataframe[target], dataframe[col], mode='full')
+        data = data[-len(dataframe[target]):]
+        temp_column = '{} : {} Correlation'.format(target, col)
+        temp = pd.DataFrame({temp_column: data})
+        temp[temp_column].plot(ax=axes[i], title=temp_column)
+    plt.tight_layout()
+
+
+def create_plots(dataframe, target, figsize=(10, 50)):
+    """
+    Creates a series of line and boxplots for the given data frame. Requires numerical or categorical data.
+
+    :param dataframe: DataFrame to plot
+    :param target: Target column to compare with.
+    :param figsize: Size of each plot.
+    :return: matplot lib subplots.
+    """
+    f, axes = plt.subplots(nrows=len(dataframe.columns), ncols=1, figsize=figsize)
+    for i, col in enumerate(dataframe.columns):
+        if lrf.is_numerical(dataframe[col]):
+            dataframe.plot(ax=axes[i], y=[target, col], title=col)
+        else:
+            sns.boxplot(data=dataframe, x=col, y=target, ax=axes[i])
+    plt.tight_layout()
 
 
 def bin_series(series, bins, quantile_binning=False):
@@ -39,9 +83,9 @@ def bin_df(df, bins, quantile_binning=False):
 
 
 def data_window_reduction(df, time_column, target_column,
-                          x_win_size=pd.Timedelta(2, unit='d'),
+                          x_win_size=pd.Timedelta('3 days 12 hours'),
                           y_win_size=pd.Timedelta(1, unit='d'),
-                          shift=pd.Timedelta(1, unit='h'),
+                          shift=pd.Timedelta(14, unit='h'),
                           percentile=0.95):
     """
     Reduces data based on a sliding window method.
@@ -85,7 +129,7 @@ def extract_percentile(windows, time_column, percentile=0.95, interpolation='lin
     :return: datetimeIndexed DataFrame of percentiled windows.
     """
     extracted = pd.DataFrame()
-    for df in windows:                     
+    for df in windows:
         extracted = extracted.append(df.quantile(percentile, interpolation=interpolation, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
     return extracted.set_index(time_column + 'Index')

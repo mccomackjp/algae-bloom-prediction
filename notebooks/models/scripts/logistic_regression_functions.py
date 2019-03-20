@@ -315,7 +315,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
             model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
-    print('greedy_columns:', greedy_columns)
+    print('base_columns:', base_columns)
     print('sorted_columns:', sorted_columns)
     sorted_columns = remove_matching_strings(sorted_columns, greedy_columns)
     print('adjusted sorted_columns:', sorted_columns)
