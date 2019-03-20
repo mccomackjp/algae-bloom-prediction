@@ -105,7 +105,7 @@ def scale_columns(train, test, scaler=StandardScaler()):
     
     ret_train = scaler.fit_transform(train)
     ret_test = scaler.transform(test)
-    
+
     return ret_train, ret_test
 
 
@@ -167,8 +167,9 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
 
-    # Scale the numerical data
+
     if len(x_columns_num) > 0:
+        # Scale the numerical data
         scaler = StandardScaler()
         x_train, x_test = scale_columns(x_train, x_test, scaler)
 
@@ -207,8 +208,9 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
     :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
-    
+
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
+
     as well as predictions made, predictions probabilities, and the model itself.
     """
     # Create training and testing numpy arrays
@@ -218,9 +220,10 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            y_column,
                                                            null_model=null_model)
 
-   
+
     if mathop is not None:
         x_train, x_test = alter_columns(x_train, x_test, mathop)
+
     # Train the model
     model.fit(x_train , y_train)
     predictions = model.predict(x_test)
@@ -251,6 +254,7 @@ def roc_plot(actual, predictions):
 def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
                            optimize_accuracy=True, optimize_recall=False, optimize_precision=False,
                            mathop=None, verbose=1):
+
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
@@ -263,6 +267,7 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
     :param verbose: 1 = print results. 0 = print nothing.
+
     :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: List of sorted column names
@@ -289,8 +294,8 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     return sorted_columns
 
 
-def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[],
-                mathop=None):
+
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -312,18 +317,20 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
             model, training_df, testing_df, base_columns, y_column, mathop=mathop)
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-            model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+          model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
     print('base_columns:', base_columns)
     print('sorted_columns:', sorted_columns)
     sorted_columns = remove_matching_strings(sorted_columns, greedy_columns)
     print('adjusted sorted_columns:', sorted_columns)
+
     for column in sorted_columns:
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
+            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column, mathop=mathop)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
