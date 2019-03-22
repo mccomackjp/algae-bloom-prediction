@@ -21,10 +21,13 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
             numerical_columns.append(col)
     f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
     for i, col in enumerate(numerical_columns):
-        data = np.correlate(dataframe[target], dataframe[col], mode='full')
+        data = np.correlate(dataframe[target]/dataframe[target].std(),
+                            dataframe[col]/dataframe[col].std(), mode='full')
+        data = data/len(data)
         data = data[-len(dataframe[target]):]
         temp_column = '{} : {} Correlation'.format(target, col)
-        temp = pd.DataFrame({temp_column: data})
+        temp = dataframe[[]].copy()
+        temp[temp_column] = data
         temp[temp_column].plot(ax=axes[i], title=temp_column)
     plt.tight_layout()
 
