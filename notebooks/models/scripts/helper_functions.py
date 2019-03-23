@@ -21,14 +21,19 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
             numerical_columns.append(col)
     f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
     for i, col in enumerate(numerical_columns):
-        data = np.correlate(dataframe[target]/dataframe[target].std(),
-                            dataframe[col]/dataframe[col].std(), mode='full')
-        data = data/len(data)
+        a = dataframe[target]
+        b = dataframe[col]
+        a = (a - a.mean()) / (a.std() * len(a))
+        b = (b - b.mean()) / (b.std())
+        data = np.correlate(a, b, mode='full')
+        # data = data / len(data)
         data = data[-len(dataframe[target]):]
         temp_column = '{} : {} Correlation'.format(target, col)
-        temp = dataframe[[]].copy()
-        temp[temp_column] = data
-        temp[temp_column].plot(ax=axes[i], title=temp_column)
+        day_ratio = 15 / 60 / 24
+        days = [i * day_ratio for i in range(0, len(dataframe[target]))]
+        temp = pd.DataFrame({temp_column: data,
+                             "Elapsed Days": days})
+        temp.plot(ax=axes[i], title=temp_column, x="Elapsed Days", y=temp_column)
     plt.tight_layout()
 
 
@@ -200,7 +205,7 @@ def save_model(model, model_name, model_version):
         tf.saved_model.simple_save(sess, tf_path, inputs={'input': model.input},
                                    outputs={t.name: t for t in model.outputs})
 
-        
+
 def create_time_of_day(x):
     """
     creates a time Category that will coorilate to the Datetime object that is passed in
@@ -210,9 +215,9 @@ def create_time_of_day(x):
     :return: teh string representing the time of day.
     """
     retval = ''
-    if x.hour >= 22 or x.hour <= 4: 
+    if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
-    if x.hour <= 6: 
+    if x.hour <= 6:
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
