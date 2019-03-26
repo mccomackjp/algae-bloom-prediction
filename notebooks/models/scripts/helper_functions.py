@@ -41,9 +41,9 @@ def bin_df(df, bins, quantile_binning=False):
 
 
 def data_window_reduction(df, time_column, target_column,
-                          x_win_size=pd.Timedelta(2, unit='d'),
+                          x_win_size=pd.Timedelta('3 days 12 hours'),
                           y_win_size=pd.Timedelta(1, unit='d'),
-                          shift=pd.Timedelta(1, unit='h'),
+                          shift=pd.Timedelta(14, unit='h'),
                           percentile=0.95):
     """
     Reduces data based on a sliding window method.
