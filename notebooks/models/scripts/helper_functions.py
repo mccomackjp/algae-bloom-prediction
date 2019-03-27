@@ -37,22 +37,24 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
     plt.tight_layout()
 
 
-def create_plots(dataframe, target, figsize=(10, 50)):
+def show_graphs(dataframe, target):
     """
-    Creates a series of line and boxplots for the given data frame. Requires numerical or categorical data.
-
-    :param dataframe: DataFrame to plot
-    :param target: Target column to compare with.
-    :param figsize: Size of each plot.
-    :return: matplot lib subplots.
+    Plots graphs for each variable vs the target in the dataframe.
+    :param dataframe: The dataframe that will need to need to get the coorilation graphs for
+    :param target: The entire dataframe column of the target variable that will need to find the coorliation for
     """
-    f, axes = plt.subplots(nrows=len(dataframe.columns), ncols=1, figsize=figsize)
+    f, axes = plt.subplots(nrows=len(dataframe.columns), ncols=1, figsize=(10, 50))
+    plt.subplots_adjust(hspace=1)
     for i, col in enumerate(dataframe.columns):
         if lrf.is_numerical(dataframe[col]):
-            dataframe.plot(ax=axes[i], y=[target, col], title=col)
+            dataframe[col].plot(ax=axes[i], title=col, color='b')
+            axe = axes[i].twinx()
+            dataframe[target].plot(ax=axe, color='r')
+            lines, labels = axes[i].get_legend_handles_labels()
+            lines2, labels2 = axe.get_legend_handles_labels()
+            axe.legend(lines + lines2, labels + labels2, loc="best")
         else:
             sns.boxplot(data=dataframe, x=col, y=target, ax=axes[i])
-    plt.tight_layout()
 
 
 def bin_series(series, bins, quantile_binning=False):
@@ -217,7 +219,7 @@ def create_time_of_day(x):
     retval = ''
     if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
-    elif x.hour <= 6: 
+    elif x.hour <= 6:
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
