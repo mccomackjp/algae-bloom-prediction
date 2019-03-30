@@ -121,13 +121,13 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95, interpolation='linear', debug=False):
+
+def extract_percentile(windows, time_column, percentile=0.95, debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
-    :param interpolation: This optional parameter specifies the interpolation method to use, when the desired quantile lies between two data points i and j:
         linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
         lower: i.
         higher: j.
@@ -140,7 +140,7 @@ def extract_percentile(windows, time_column, percentile=0.95, interpolation='lin
     """
     extracted = pd.DataFrame()
     for df in windows:
-        extracted = extracted.append(df.quantile(percentile, interpolation=interpolation, numeric_only=False))
+        extracted = extracted.append(df.quantile(percentile, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
     return extracted.set_index(time_column + 'Index')
 
@@ -219,7 +219,7 @@ def create_time_of_day(x):
     retval = ''
     if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
-    elif x.hour <= 6:
+    elif x.hour <= 6: 
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
