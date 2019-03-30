@@ -112,6 +112,7 @@ def scale_columns(train, test, scaler=StandardScaler()):
     
     ret_train = scaler.fit_transform(train)
     ret_test = scaler.transform(test)
+
     return ret_train, ret_test
 
 
@@ -224,13 +225,14 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            testing_df,
                                                            x_columns,
                                                            y_column,
-                                                           null_model)
+                                                           null_model=null_model)
+
 
     if mathop is not None:
         x_train, x_test = alter_columns(x_train, x_test, mathop)
 
     # Train the model
-    model.fit(x_train, y_train)
+    model.fit(x_train , y_train)
     predictions = model.predict(x_test)
     predictions_prob = model.predict_proba(x_test)
     accuracy = accuracy_score(y_test, predictions)
@@ -258,7 +260,8 @@ def roc_plot(actual, predictions):
 
 def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
                            optimize_accuracy=True, optimize_recall=False, optimize_precision=False,
-                           mathop=None):
+                           mathop=None, verbose=1):
+
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
@@ -270,26 +273,31 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
+    :param verbose: 1 = print results. 0 = print nothing.
+
     :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
-        print("Training model with:", column)
+        if verbose:
+            print("Training model with:", column)
         accuracy, recall, precision, cm, _, _, _ = train_model(
             model, training_df, testing_df, [column], y_column, mathop=mathop)
         models[column] = (accuracy * optimize_accuracy) + (recall * optimize_recall) + (precision * optimize_precision)
-        print("Accuracy", accuracy)
-        print("Recall:", recall)
-        print("Precision", precision)
-        print("Confusion Matrix:\n", cm)
-        print()
+        if verbose:
+            print("Accuracy", accuracy)
+            print("Recall:", recall)
+            print("Precision", precision)
+            print("Confusion Matrix:\n", cm)
+            print()
 
     # sort columns by the sum of selected metrics first
     sorted_columns = sorted(models, key=models.get, reverse=True)
-    for column in sorted_columns:
-        print("{} metric value: {}".format(column, models[column]))
+    if verbose:
+        for column in sorted_columns:
+            print("{} metric value: {}".format(column, models[column]))
     return sorted_columns
 
 
@@ -317,9 +325,10 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
           model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
-    print('greedy_columns:', greedy_columns)
+    print('base_columns:', base_columns)
     print('sorted_columns:', sorted_columns)
     sorted_columns = remove_matching_strings(sorted_columns, greedy_columns)
     print('adjusted sorted_columns:', sorted_columns)
