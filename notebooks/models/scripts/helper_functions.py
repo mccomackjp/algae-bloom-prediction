@@ -111,6 +111,7 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
+
 def extract_percentile(windows, time_column, percentile=0.95, debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
