@@ -23,6 +23,13 @@ def add_target_column(data_frames, target_column='BGA-Phycocyanin RFU',
 
 
 def import_df_data(files, drop_columns=[]):
+    """
+    Imports csv data into a list of dataframes.
+
+    :param files: csv iles to import from.
+    :param drop_columns: Columns to drop from the dataframe.
+    :return: list of dataframes with imported data.
+    """
     data_frames = []
     for file in files:
         df = pd.read_csv(file)
