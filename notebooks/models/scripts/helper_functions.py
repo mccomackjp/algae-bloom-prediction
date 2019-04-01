@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import datetime
+from scripts.SurfaceStationReading import SurfaceStationReading
 from keras import backend as K
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -210,11 +212,11 @@ def save_model(model, model_name, model_version):
 
 def create_time_of_day(x):
     """
-    creates a time Category that will coorilate to the Datetime object that is passed in
+    creates a time Category that will correlate to the Datetime object that is passed in
     
     :param x: the Datetime object to create the time of day for
     
-    :return: teh string representing the time of day.
+    :return: the string representing the time of day.
     """
     retval = ''
     if x.hour >= 22 or x.hour <= 4:
@@ -230,3 +232,26 @@ def create_time_of_day(x):
     else:
         retval = 'evening'
     return retval
+
+def round_time(dt, round_to=900):
+    """
+    Round a date time object to any time lapse in seconds
+    :param dt: the datetime.datetime object to be rounded
+    :param round_to: The closes number of seconds to round to, default 15 minutes
+    :return: The rounded datetime object to the roundTo time
+    """
+    seconds = ( dt.replace(tzinfo=None) - dt.min ).seconds
+    rounding = (seconds + round_to/2) // round_to * round_to
+    return dt + datetime.timedelta(0, rounding-seconds, -dt.microsecond)
+
+def extract_weather_data(filename):
+    """
+    extracts the weather data from the file name
+    :param filename: the file name that contains the ISD weather station data
+    :return: an array of entries from the file
+    """
+    with open(filename) as file:
+        contents = file.readlines()
+    contents = [SurfaceStationReading(x) for x in contents]
+    return contents
+
