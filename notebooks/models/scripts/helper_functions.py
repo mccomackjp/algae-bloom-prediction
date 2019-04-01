@@ -3,6 +3,60 @@ import pandas as pd
 import datetime
 from scripts.SurfaceStationReading import SurfaceStationReading
 from keras import backend as K
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scripts.logistic_regression_functions as lrf
+
+
+def create_correlation_plots(dataframe, target, figsize=(10, 50)):
+    """
+    Creates a series of numpy correlation plots between all numerical columns and the target column.
+
+    :param dataframe: DataFrame to plot.
+    :param target: Target column to compare with.
+    :param figsize: Size of each plot.
+    :return: matplot lib subplots.
+    """
+    numerical_columns = []
+    for col in dataframe.columns:
+        if lrf.is_numerical(dataframe[col]):
+            numerical_columns.append(col)
+    f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
+    for i, col in enumerate(numerical_columns):
+        a = dataframe[target]
+        b = dataframe[col]
+        a = (a - a.mean()) / (a.std() * len(a))
+        b = (b - b.mean()) / (b.std())
+        data = np.correlate(a, b, mode='full')
+        # data = data / len(data)
+        data = data[-len(dataframe[target]):]
+        temp_column = '{} : {} Correlation'.format(target, col)
+        day_ratio = 15 / 60 / 24
+        days = [i * day_ratio for i in range(0, len(dataframe[target]))]
+        temp = pd.DataFrame({temp_column: data,
+                             "Elapsed Days": days})
+        temp.plot(ax=axes[i], title=temp_column, x="Elapsed Days", y=temp_column)
+    plt.tight_layout()
+
+
+def show_graphs(dataframe, target):
+    """
+    Plots graphs for each variable vs the target in the dataframe.
+    :param dataframe: The dataframe that will need to need to get the coorilation graphs for
+    :param target: The entire dataframe column of the target variable that will need to find the coorliation for
+    """
+    f, axes = plt.subplots(nrows=len(dataframe.columns), ncols=1, figsize=(10, 50))
+    plt.subplots_adjust(hspace=1)
+    for i, col in enumerate(dataframe.columns):
+        if lrf.is_numerical(dataframe[col]):
+            dataframe[col].plot(ax=axes[i], title=col, color='b')
+            axe = axes[i].twinx()
+            dataframe[target].plot(ax=axe, color='r')
+            lines, labels = axes[i].get_legend_handles_labels()
+            lines2, labels2 = axe.get_legend_handles_labels()
+            axe.legend(lines + lines2, labels + labels2, loc="best")
+        else:
+            sns.boxplot(data=dataframe, x=col, y=target, ax=axes[i])
 
 
 def bin_series(series, bins, quantile_binning=False):
@@ -59,22 +113,28 @@ def data_window_reduction(df, time_column, target_column,
     :return: Reduced DataFrame.
     """
     print("Segmenting...")
-    x_windows, y_windows = segment_dataset(df, time_column, x_win_size, y_win_size, shift)
+    x_windows, y_windows = segment_dataset(df, time_column, x_win_size=x_win_size, y_win_size=y_win_size, shift=shift)
     print("Extracting feature windows...")
-    x_windows = extract_percentile(x_windows, time_column, percentile)
+    x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
     print("Extracting target windows...")
-    y_windows = extract_percentile(y_windows, time_column, percentile)
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile, debug=True)
     print("Combining extractions...")
     x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95):
+
+def extract_percentile(windows, time_column, percentile=0.95, debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
+        linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
+        lower: i.
+        higher: j.
+        nearest: i or j whichever is nearest.
+        midpoint: (i + j) / 2.
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
 
@@ -149,7 +209,7 @@ def save_model(model, model_name, model_version):
         tf.saved_model.simple_save(sess, tf_path, inputs={'input': model.input},
                                    outputs={t.name: t for t in model.outputs})
 
-        
+
 def create_time_of_day(x):
     """
     creates a time Category that will correlate to the Datetime object that is passed in
@@ -159,7 +219,7 @@ def create_time_of_day(x):
     :return: the string representing the time of day.
     """
     retval = ''
-    if x.hour >= 22 or x.hour <= 4: 
+    if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
     elif x.hour <= 6: 
         retval = 'dawn'
