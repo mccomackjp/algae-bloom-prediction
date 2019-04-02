@@ -102,7 +102,7 @@ def scale_columns(train, test, scaler=StandardScaler()):
     
     :return: ret_train, ret_test tuple of the scaled values
     """
-    
+
     ret_train = scaler.fit_transform(train)
     ret_test = scaler.transform(test)
     return ret_train, ret_test
@@ -122,7 +122,6 @@ def alter_columns(train, test, op):
 
 
 def impute_columns(train, test, imputer):
-    
     """
     Imputes the columns based on the DataFrame that is passed in
     
@@ -134,7 +133,7 @@ def impute_columns(train, test, imputer):
     """
     ret_train = imputer.fit_transform(train)
     ret_test = imputer.transform(test)
-    
+
     return ret_train, ret_test
 
 
@@ -165,7 +164,6 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_test = df_test_cat if y_column in df_test_cat.columns else df_test_num
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
-
 
     if len(x_columns_num) > 0:
         # Scale the numerical data
@@ -286,7 +284,6 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     return sorted_columns
 
 
-
 def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
     """
     Creates a greedy model based on columns which only improve recall.
@@ -309,7 +306,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
             model, training_df, testing_df, base_columns, y_column, mathop=mathop)
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-          model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+            model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
     print('greedy_columns:', greedy_columns)
@@ -321,7 +318,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column, mathop=mathop)
+        temp_model = train_model(model, training_df, testing_df, temp_columns, y_column, mathop=mathop)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
@@ -345,34 +342,30 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
-def cross_validate(model, df_early, df_late, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
+def cross_validate(model, df_early, df_late, x_columns, y_column, mathop=None):
     """
-    Cross validate the data with a 'brute force' approach
+    Cross validate the early and late DataFrames with each other.
 
-    :param model: the model that s going to be used in training.
-    :param df_early: List of pre cleaned and ready to train DataFrames with the earlier years
-    :param df_late: List of pre cleaned and ready to train DataFrames with the later years
+    :param model: the model that is going to be used in training.
+    :param df_early: The already cleaned, ready to train DataFrame of the earlier year
+    :param df_late: The already cleaned, ready to train DataFrame of the later year
     :param x_columns: the columns that are going to be used to train on
     :param y_column: the target column name
-    :param sorted_columns: the list of sorted columns
-    :param base_columns: the columns to always use
     :param mathop: the math operation if needed
 
-    :return: a dictionary of results with keys representing the trainset<index>_testset<index>
+    :return: a dictionary of results with keys representing the trainset_testset
     """
 
     results = {}
-    for i, dfe in enumerate(df_early):
-        for j, dfl in enumerate(df_late):
-            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfl, dfe,
-                                                                                                 x_columns, y_column,
-                                                                                                 sorted_columns,
-                                                                                                 base_columns, mathop)
-            results['dfl{}_dfe{}'.format(i, j)] = (accuracy, recall, precision)
-            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfe, dfl,
-                                                                                                 x_columns, y_column,
-                                                                                                 sorted_columns,
-                                                                                                 base_columns, mathop)
-            results['dfe{}_dfl{}'.format(j, i)] = (accuracy, recall, precision)
-    return results
 
+    accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_late, df_early,
+                                                                                    x_columns, y_column,
+                                                                                    null_model=False,
+                                                                                    mathop=mathop)
+    results['dflate_dfearly'] = (accuracy, recall, precision)
+    accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early, df_late,
+                                                                                    x_columns, y_column,
+                                                                                    null_model=False,
+                                                                                    mathop=mathop)
+    results['dfearly_dflate'] = (accuracy, recall, precision)
+    return results
