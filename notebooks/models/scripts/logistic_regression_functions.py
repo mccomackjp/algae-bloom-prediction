@@ -343,3 +343,36 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
+
+
+def cross_validate(model, df_early, df_late, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
+    """
+    Cross validate the data with a 'brute force' approach
+
+    :param model: the model that s going to be used in training.
+    :param df_early: List of pre cleaned and ready to train DataFrames with the earlier years
+    :param df_late: List of pre cleaned and ready to train DataFrames with the later years
+    :param x_columns: the columns that are going to be used to train on
+    :param y_column: the target column name
+    :param sorted_columns: the list of sorted columns
+    :param base_columns: the columns to always use
+    :param mathop: the math operation if needed
+
+    :return: a dictionary of results with keys representing the trainset<index>_testset<index>
+    """
+
+    results = {}
+    for i, dfe in enumerate(df_early):
+        for j, dfl in enumerate(df_late):
+            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfl, dfe,
+                                                                                                 x_columns, y_column,
+                                                                                                 sorted_columns,
+                                                                                                 base_columns, mathop)
+            results['dfl{}_dfe{}'.format(i, j)] = (accuracy, recall, precision)
+            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfe, dfl,
+                                                                                                 x_columns, y_column,
+                                                                                                 sorted_columns,
+                                                                                                 base_columns, mathop)
+            results['dfe{}_dfl{}'.format(j, i)] = (accuracy, recall, precision)
+    return results
+
