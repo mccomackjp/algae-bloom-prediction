@@ -145,12 +145,55 @@ def extract_percentile(windows, time_column, percentile=0.95):
     return extracted.set_index(time_column + 'Index')
 
 
+def windowize(df, time_column, target_column,
+              x_win_size=pd.Timedelta('3 days 12 hours'),
+              y_win_size=pd.Timedelta(1, unit='d'),
+              shift=pd.Timedelta(14, unit='h'),
+              percentile=0.95,
+              separation=pd.Timedelta(0),
+              custom_parameters=None):
+    """
+    Reduces data based on a sliding window method.
+
+    :param custom_parameters:
+    :param df: DataFrame to reduce
+    :param time_column: name of the datetime object column in the DataFrame
+    :param target_column: Column which is the target for predictions.
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param y_win_size: Timedelta for the size of target windows.
+    :param shift: Timedelta for the amount to shift windows by.
+    :param percentile: float percentage of the value to extract.
+        example: max = 1.0, min = 0.0, average = 0.5
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param custom_parameters: Dictionary of custom shift and separation amounts for specific columns.
+        where the key is the column name, and the value is a tuple of Timedeltas, with index 0 being the x window size,
+        and index 1 being the separation from the y window amount.
+        use example:
+            custom_paramaters= {'Temp C': (pd.Timedelta('7 days'), pd.Timedelta('21 days')),
+                                'datetime': (pd.Timedelta('4 days', pd.Timedelta(0)))}
+
+    :return: Reduced DataFrame.
+    """
+    print("Segmenting...")
+    x_windows, y_windows = slice_windows(df, time_column, x_win_size=x_win_size,
+                                         y_win_size=y_win_size, shift=shift,
+                                         separation=separation,
+                                         custom_parameters=custom_parameters)
+    print("Extracting feature windows...")
+    x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
+    print("Extracting target windows...")
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile)
+    print("Combining extractions...")
+    x_windows[target_column] = y_windows[target_column].values
+    return x_windows
+
+
 def slice_windows(df, time_col,
                   x_win_size=pd.Timedelta('3 days 12 hours'),
-                  y_win_size=pd.Timedelta(14, unit='d'),
-                  shift=pd.Timedelta(1, unit='h'),
+                  y_win_size=pd.Timedelta(1, unit='d'),
+                  shift=pd.Timedelta(14, unit='h'),
                   separation=pd.Timedelta(0),
-                  custom_parameters=dict()):
+                  custom_parameters=None):
     """
     Slices the data set into feature and target windows.
 
@@ -169,6 +212,8 @@ def slice_windows(df, time_col,
 
     :return: An array of Dataframes windowed for features and targets
     """
+    if custom_parameters is None:
+        custom_parameters = dict()
     features = []
     targets = []
     start = df[time_col][0]
