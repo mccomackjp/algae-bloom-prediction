@@ -19,7 +19,7 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
     """
     numerical_columns = []
     for col in dataframe.columns:
-        if lrf.is_numerical(dataframe[col]):
+        if col != target and lrf.is_numerical(dataframe[col]):
             numerical_columns.append(col)
     f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
     for i, col in enumerate(numerical_columns):
@@ -28,7 +28,7 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
         a = (a - a.mean()) / (a.std() * len(a))
         b = (b - b.mean()) / (b.std())
         data = np.correlate(a, b, mode='full')
-        data = data[-len(dataframe[target]):] # Grab just the last half of the curve
+        data = data[-len(dataframe[target]):]  # Grab just the last half of the curve
         temp_column = '{} : {} Correlation'.format(target, col)
         day_ratio = 15 / 60 / 24
         days = [i * day_ratio for i in range(0, len(dataframe[target]))]
@@ -143,6 +143,34 @@ def extract_percentile(windows, time_column, percentile=0.95):
         extracted = extracted.append(df.quantile(percentile, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
     return extracted.set_index(time_column + 'Index')
+
+
+def slice_windows(df, time_col,
+                  x_win_size=pd.Timedelta(2, unit='d'),
+                  y_win_size=pd.Timedelta(1, unit='d'),
+                  shift=pd.Timedelta(1, unit='h'),
+                  ):
+    """
+    Slices the data set into feature and target windows.
+
+    :param df: the data frame to segment into windows, must be indexed by datetime
+    :param time_col: the name of the time column in the dataset
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param y_win_size: Timedelta for the size of target windows.
+    :param shift: Timedelta for the amount to shift windows by.
+
+    :return: An array of Dataframes windowed for features and targets
+    """
+    features = []
+    targets = []
+    start = df[time_col][0]
+    end = df[time_col][len(df[time_col]) - 1]
+    offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
+    while start + x_win_size + y_win_size <= end:
+        features.append(df[start:start + x_win_size])
+        targets.append(df[start + x_win_size + offset: start + x_win_size + y_win_size])
+        start += shift
+    return features, targets
 
 
 def segment_dataset(df, time_col,
