@@ -28,8 +28,7 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
         a = (a - a.mean()) / (a.std() * len(a))
         b = (b - b.mean()) / (b.std())
         data = np.correlate(a, b, mode='full')
-        # data = data / len(data)
-        data = data[-len(dataframe[target]):]
+        data = data[-len(dataframe[target]):] # Grab just the last half of the curve
         temp_column = '{} : {} Correlation'.format(target, col)
         day_ratio = 15 / 60 / 24
         days = [i * day_ratio for i in range(0, len(dataframe[target]))]
@@ -117,14 +116,13 @@ def data_window_reduction(df, time_column, target_column,
     print("Extracting feature windows...")
     x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
     print("Extracting target windows...")
-    y_windows = extract_percentile(y_windows, time_column, percentile=percentile, debug=True)
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile)
     print("Combining extractions...")
     x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
-
-def extract_percentile(windows, time_column, percentile=0.95, debug=False):
+def extract_percentile(windows, time_column, percentile=0.95):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
@@ -166,7 +164,7 @@ def segment_dataset(df, time_col,
     targets = []
     start = df[time_col][0]
     end = df[time_col][len(df[time_col]) - 1]
-    offset = pd.Timedelta(1, unit='s')  # to remove overlap between x and y
+    offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
     while start + x_win_size + y_win_size <= end:
         segments.append(df[start:start + x_win_size])
         targets.append(df[start + x_win_size + offset: start + x_win_size + y_win_size])
@@ -221,7 +219,7 @@ def create_time_of_day(x):
     retval = ''
     if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
-    elif x.hour <= 6: 
+    elif x.hour <= 6:
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
@@ -233,6 +231,7 @@ def create_time_of_day(x):
         retval = 'evening'
     return retval
 
+
 def round_time(dt, round_to=900):
     """
     Round a date time object to any time lapse in seconds
@@ -240,9 +239,10 @@ def round_time(dt, round_to=900):
     :param round_to: The closes number of seconds to round to, default 15 minutes
     :return: The rounded datetime object to the roundTo time
     """
-    seconds = ( dt.replace(tzinfo=None) - dt.min ).seconds
-    rounding = (seconds + round_to/2) // round_to * round_to
-    return dt + datetime.timedelta(0, rounding-seconds, -dt.microsecond)
+    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
+    rounding = (seconds + round_to / 2) // round_to * round_to
+    return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
+
 
 def extract_weather_data(filename):
     """
@@ -254,4 +254,3 @@ def extract_weather_data(filename):
         contents = file.readlines()
     contents = [SurfaceStationReading(x) for x in contents]
     return contents
-
