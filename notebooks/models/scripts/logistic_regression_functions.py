@@ -18,8 +18,13 @@ def add_target_column(data_frames, target_column='BGA-Phycocyanin RFU',
     :param threshold: Threshold to set each value of the new target with.
     """
     for df in data_frames:
-        df[new_target_name] = df[target_column].apply(
-            lambda x: 1 if x > threshold else 0)
+        if isinstance(df, list):
+            for frame in df:
+                frame[new_target_name] = frame[target_column].apply(
+                    lambda x: 1 if x > threshold else 0)
+        else:
+            df[new_target_name] = df[target_column].apply(
+                lambda x: 1 if x > threshold else 0)
 
 
 def import_df_data(files, drop_columns=[]):
@@ -347,25 +352,29 @@ def cross_validate(model, df_early, df_late, x_columns, y_column, mathop=None):
     Cross validate the early and late DataFrames with each other.
 
     :param model: the model that is going to be used in training.
-    :param df_early: The already cleaned, ready to train DataFrame of the earlier year
-    :param df_late: The already cleaned, ready to train DataFrame of the later year
+    :param df_early: The already cleaned, ready to train list of DataFrames of the earlier year
+    :param df_late: The already cleaned, ready to train list of DataFrames of the later year
     :param x_columns: the columns that are going to be used to train on
     :param y_column: the target column name
     :param mathop: the math operation if needed
 
-    :return: a dictionary of results with keys representing the trainset_testset
+    :return: a dictionary of results with keys representing the trainset<index>_testset<index>
     """
 
     results = {}
 
-    accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_late, df_early,
-                                                                                    x_columns, y_column,
-                                                                                    null_model=False,
-                                                                                    mathop=mathop)
-    results['dflate_dfearly'] = (accuracy, recall, precision)
-    accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early, df_late,
-                                                                                    x_columns, y_column,
-                                                                                    null_model=False,
-                                                                                    mathop=mathop)
-    results['dfearly_dflate'] = (accuracy, recall, precision)
+    for i in range(len(df_early)):
+        for j in range(len(df_late)):
+            accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_late[j],
+                                                                                            df_early[i],
+                                                                                            x_columns, y_column,
+                                                                                            null_model=False,
+                                                                                            mathop=mathop)
+            results['dfl{}_dfe{}'.format(j,i)] = (accuracy, recall, precision)
+            accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early[i],
+                                                                                            df_late[j],
+                                                                                            x_columns, y_column,
+                                                                                            null_model=False,
+                                                                                            mathop=mathop)
+            results['dfe{}_dfl{}'.format(i,j)] = (accuracy, recall, precision)
     return results
