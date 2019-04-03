@@ -219,22 +219,25 @@ def slice_windows(df, time_col,
     start = df[time_col][0]
     end = df[time_col][len(df[time_col]) - 1]
     offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
-    max_x_win = max(pd.Timedelta(0), x_win_size + separation)
+    max_x_win = x_win_size + separation
     # Check if the custom window and separation values are larger than the default.
     for key, value in custom_parameters.items():
         max_x_win = max(max_x_win, value[0] + value[1])
+    print("max x win:", max_x_win)
     while start + max_x_win + y_win_size <= end:
         # We want to anchor off of the start of the y window
         y_start = start + max_x_win
         targets.append(df[y_start + offset:y_start + y_win_size])
         temp = pd.DataFrame()
         for col in df.columns:
+            print("column:", col)
             temp_x_window = x_win_size
             temp_sep = separation
             if col in custom_parameters:
                 temp_x_window = custom_parameters[col][0]
                 temp_sep = custom_parameters[col][1]
-            temp[col] = df[col][y_start - temp_x_window:y_start - temp_sep]
+            print("col x: {} col sep: {}".format(temp_x_window, temp_sep))
+            temp[col] = df[col][y_start - temp_x_window - temp_sep:y_start - temp_sep]
         features.append(temp)
         start += shift
     return features, targets
