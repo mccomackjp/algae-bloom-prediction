@@ -146,10 +146,11 @@ def extract_percentile(windows, time_column, percentile=0.95):
 
 
 def slice_windows(df, time_col,
-                  x_win_size=pd.Timedelta(2, unit='d'),
-                  y_win_size=pd.Timedelta(1, unit='d'),
+                  x_win_size=pd.Timedelta('3 days 12 hours'),
+                  y_win_size=pd.Timedelta(14, unit='d'),
                   shift=pd.Timedelta(1, unit='h'),
-                  ):
+                  separation=pd.Timedelta(0),
+                  custom_parameters=dict()):
     """
     Slices the data set into feature and target windows.
 
@@ -158,6 +159,13 @@ def slice_windows(df, time_col,
     :param x_win_size: Timedelta for the size of feature windows.
     :param y_win_size: Timedelta for the size of target windows.
     :param shift: Timedelta for the amount to shift windows by.
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param custom_parameters: Dictionary of custom shift and separation amounts for specific columns.
+        where the key is the column name, and the value is a tuple of Timedeltas, with index 0 being the x window size,
+        and index 1 being the separation from the y window amount.
+        use example:
+            custom_paramaters= {'Temp C': (pd.Timedelta('7 days'), pd.Timedelta('21 days')),
+                                'datetime': (pd.Timedelta('4 days', pd.Timedelta(0)))}
 
     :return: An array of Dataframes windowed for features and targets
     """
@@ -166,17 +174,31 @@ def slice_windows(df, time_col,
     start = df[time_col][0]
     end = df[time_col][len(df[time_col]) - 1]
     offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
-    while start + x_win_size + y_win_size <= end:
-        features.append(df[start:start + x_win_size])
-        targets.append(df[start + x_win_size + offset: start + x_win_size + y_win_size])
+    max_x_win = max(pd.Timedelta(0), x_win_size + separation)
+    # Check if the custom window and separation values are larger than the default.
+    for key, value in custom_parameters.items():
+        max_x_win = max(max_x_win, value[0] + value[1])
+    while start + max_x_win + y_win_size <= end:
+        # We want to anchor off of the start of the y window
+        y_start = start + max_x_win
+        targets.append(df[y_start + offset:y_start + y_win_size])
+        temp = pd.DataFrame()
+        for col in df.columns:
+            temp_x_window = x_win_size
+            temp_sep = separation
+            if col in custom_parameters:
+                temp_x_window = custom_parameters[col][0]
+                temp_sep = custom_parameters[col][1]
+            temp[col] = df[col][y_start - temp_x_window:y_start - temp_sep]
+        features.append(temp)
         start += shift
     return features, targets
 
 
 def segment_dataset(df, time_col,
-                    x_win_size=pd.Timedelta(2, unit='d'),
+                    x_win_size=pd.Timedelta('3 days 12 hours'),
                     y_win_size=pd.Timedelta(1, unit='d'),
-                    shift=pd.Timedelta(1, unit='h')):
+                    shift=pd.Timedelta(14, unit='h')):
     """
     Segments the data set based on the parameters that are passed in.
 
