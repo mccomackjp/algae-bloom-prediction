@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-import helper_functions as hf
+import scripts.helper_functions as hf
 
 
 class TestDataSegment(unittest.TestCase):
@@ -13,6 +13,23 @@ class TestDataSegment(unittest.TestCase):
         index = self.time_column + 'Index'
         self.df[index] = self.df[self.time_column]
         self.df = self.df.set_index(index)
+
+    def test_custom_segment_even_windows_match(self):
+        segments, targets = hf.segment_dataset(self.df, self.time_column,
+                                               x_win_size=pd.Timedelta(1, unit='d'),
+                                               y_win_size=pd.Timedelta(1, unit='d'),
+                                               shift=pd.Timedelta(1, unit='d'))
+        params = {'datetime': (pd.Timedelta('1 day'), pd.Timedelta(0)),
+                  'data': (pd.Timedelta('1 day'), pd.Timedelta(0))}
+        custom_seg, custom_targets = hf.slice_windows(self.df, self.time_column,
+                                               x_win_size=pd.Timedelta(1, unit='d'),
+                                               y_win_size=pd.Timedelta(1, unit='d'),
+                                               shift=pd.Timedelta(1, unit='d'),
+                                               cutom_parameters=params)
+        self.assertEqual(len(segments), len(custom_seg))
+        self.assertEqual(len(targets), len(custom_targets))
+        self.assertEqual(len(custom_seg), len(custom_targets))
+        self.assertEqual(len(segments), 8)
 
     def test_segment_even_windows(self):
         segments, targets = hf.segment_dataset(self.df, self.time_column,
@@ -71,8 +88,6 @@ class TestDataSegment(unittest.TestCase):
             self.assertAlmostEqual(x_averages[i], x_df['data'].values[i])
         for i in range(0, len(y_averages)):
             self.assertAlmostEqual(y_averages[i], y_df['data'].values[i])
-
-    # TODO Add more tests for extract
 
 
 if __name__ == '__main__':
