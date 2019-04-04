@@ -237,7 +237,9 @@ def extract_windows(df, time_col,
     max_x_win = x_win_size + separation
     # Check if the custom window and separation values are larger than the default.
     for key, value in custom_parameters.items():
-        max_x_win = max(max_x_win, value['x_win_size'] + value['separation'])
+        temp_x_win = value['x_win_size'] if 'x_win_size' in value else x_win_size
+        temp_sep = value['separation'] if 'separation' in value else separation
+        max_x_win = max(max_x_win, temp_x_win + temp_sep)
     while start + max_x_win + y_win_size <= end:
         # We want to anchor off of the start of the y window
         y_start = start + max_x_win
