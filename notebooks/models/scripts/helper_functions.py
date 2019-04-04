@@ -244,8 +244,10 @@ def slice_windows(df, time_col,
             temp_x_window = x_win_size
             temp_sep = separation
             if col in custom_parameters:
-                temp_x_window = custom_parameters[col]['x_win_size']
-                temp_sep = custom_parameters[col]['separation']
+                if 'x_win_size' in custom_parameters[col]:
+                    temp_x_window = custom_parameters[col]['x_win_size']
+                if 'separation' in custom_parameters[col]:
+                    temp_sep = custom_parameters[col]['separation']
             # Anchor x_start from the y_start
             x_start = y_start - temp_x_window - temp_sep
             new_df = df[[col]][x_start:x_start + temp_x_window]
