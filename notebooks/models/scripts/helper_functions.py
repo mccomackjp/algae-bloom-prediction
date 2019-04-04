@@ -165,12 +165,18 @@ def windowize(df, time_column, target_column,
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
     :param separation: Timedelta for the amount to separate the x window and y window by
-    :param custom_parameters: Dictionary of custom shift and separation amounts for specific columns.
-        where the key is the column name, and the value is a tuple of Timedeltas, with index 0 being the x window size,
-        and index 1 being the separation from the y window amount.
-        use example:
-            custom_paramaters= {'Temp C': (pd.Timedelta('7 days'), pd.Timedelta('21 days')),
-                                'datetime': (pd.Timedelta('4 days', pd.Timedelta(0)))}
+    :param custom_parameters: Dictionary of dictionaries containing custom shift
+        and separation amounts for specific columns.
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
 
     :return: Reduced DataFrame.
     """
@@ -203,12 +209,18 @@ def slice_windows(df, time_col,
     :param y_win_size: Timedelta for the size of target windows.
     :param shift: Timedelta for the amount to shift windows by.
     :param separation: Timedelta for the amount to separate the x window and y window by
-    :param custom_parameters: Dictionary of custom shift and separation amounts for specific columns.
-        where the key is the column name, and the value is a tuple of Timedeltas, with index 0 being the x window size,
-        and index 1 being the separation from the y window amount.
-        use example:
-            custom_paramaters= {'Temp C': (pd.Timedelta('7 days'), pd.Timedelta('21 days')),
-                                'datetime': (pd.Timedelta('4 days', pd.Timedelta(0)))}
+    :param custom_parameters: Dictionary of dictionaries containing custom shift
+        and separation amounts for specific columns.
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
 
     :return: An array of Dataframes windowed for features and targets
     """
@@ -222,7 +234,7 @@ def slice_windows(df, time_col,
     max_x_win = x_win_size + separation
     # Check if the custom window and separation values are larger than the default.
     for key, value in custom_parameters.items():
-        max_x_win = max(max_x_win, value[0] + value[1])
+        max_x_win = max(max_x_win, value['x_win_size'] + value['separation'])
     while start + max_x_win + y_win_size <= end:
         # We want to anchor off of the start of the y window
         y_start = start + max_x_win
@@ -232,8 +244,8 @@ def slice_windows(df, time_col,
             temp_x_window = x_win_size
             temp_sep = separation
             if col in custom_parameters:
-                temp_x_window = custom_parameters[col][0]
-                temp_sep = custom_parameters[col][1]
+                temp_x_window = custom_parameters[col]['x_win_size']
+                temp_sep = custom_parameters[col]['separation']
             # Anchor x_start from the y_start
             x_start = y_start - temp_x_window - temp_sep
             new_df = df[[col]][x_start:x_start + temp_x_window]
