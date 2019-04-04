@@ -166,7 +166,7 @@ def windowize(df, time_column, target_column,
         example: max = 1.0, min = 0.0, average = 0.5
     :param separation: Timedelta for the amount to separate the x window and y window by
     :param custom_parameters: Dictionary of dictionaries containing custom shift
-        and separation amounts for specific columns.
+        and separation amounts for specific columns (all parameters are optional).
         where the key is the column name, and the value is a dictionary of Timedeltas,
         with key 'x_win_size' being the x window size,
         and key 'separation' being the separation from the y window amount.
@@ -201,7 +201,7 @@ def slice_windows(df, time_col,
                   separation=pd.Timedelta(0),
                   custom_parameters=None):
     """
-    Slices the data set into feature and target windows.
+    Extracts the data set into feature and target windows.
 
     :param df: the data frame to segment into windows, must be indexed by datetime
     :param time_col: the name of the time column in the dataset
@@ -210,7 +210,7 @@ def slice_windows(df, time_col,
     :param shift: Timedelta for the amount to shift windows by.
     :param separation: Timedelta for the amount to separate the x window and y window by
     :param custom_parameters: Dictionary of dictionaries containing custom shift
-        and separation amounts for specific columns.
+        and separation amounts for specific columns (all parameters are optional).
         where the key is the column name, and the value is a dictionary of Timedeltas,
         with key 'x_win_size' being the x window size,
         and key 'separation' being the separation from the y window amount.
@@ -239,22 +239,49 @@ def slice_windows(df, time_col,
         # We want to anchor off of the start of the y window
         y_start = start + max_x_win
         targets.append(df[y_start + offset:y_start + y_win_size])
-        temp = pd.DataFrame()
-        for col in df.columns:
-            temp_x_window = x_win_size
-            temp_sep = separation
-            if col in custom_parameters:
-                if 'x_win_size' in custom_parameters[col]:
-                    temp_x_window = custom_parameters[col]['x_win_size']
-                if 'separation' in custom_parameters[col]:
-                    temp_sep = custom_parameters[col]['separation']
-            # Anchor x_start from the y_start
-            x_start = y_start - temp_x_window - temp_sep
-            new_df = df[[col]][x_start:x_start + temp_x_window]
-            temp = pd.concat([temp, new_df], axis='columns')
-        features.append(temp)
+        feature_window = extract_feature_window(df, x_win_size, separation, y_start, custom_parameters)
+        features.append(feature_window)
         start += shift
     return features, targets
+
+
+def extract_feature_window(df, x_win_size, separation, y_start, custom_parameters):
+    """
+    Extracts a feature window from the given DataFrame.
+
+    :param df: DataFrame to extract from
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param y_start: DateTime object of target window start point.
+    :param custom_parameters: Dictionary of dictionaries containing custom shift
+        and separation amounts for specific columns (all parameters are optional).
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
+
+    :return: Extracted feature window as a DataFrame.
+    """
+    feature_window = pd.DataFrame()
+    for col in df.columns:
+        temp_x_window = x_win_size
+        temp_sep = separation
+        if col in custom_parameters:
+            if 'x_win_size' in custom_parameters[col]:
+                temp_x_window = custom_parameters[col]['x_win_size']
+            if 'separation' in custom_parameters[col]:
+                temp_sep = custom_parameters[col]['separation']
+        # Anchor x_start from the y_start
+        x_start = y_start - temp_x_window - temp_sep
+        new_df = df[[col]][x_start:x_start + temp_x_window]
+        feature_window = pd.concat([feature_window, new_df], axis='columns')
+    return feature_window
 
 
 def segment_dataset(df, time_col,
