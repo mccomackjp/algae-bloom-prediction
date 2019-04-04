@@ -223,21 +223,21 @@ def slice_windows(df, time_col,
     # Check if the custom window and separation values are larger than the default.
     for key, value in custom_parameters.items():
         max_x_win = max(max_x_win, value[0] + value[1])
-    print("max x win:", max_x_win)
     while start + max_x_win + y_win_size <= end:
         # We want to anchor off of the start of the y window
         y_start = start + max_x_win
         targets.append(df[y_start + offset:y_start + y_win_size])
         temp = pd.DataFrame()
         for col in df.columns:
-            print("column:", col)
             temp_x_window = x_win_size
             temp_sep = separation
             if col in custom_parameters:
                 temp_x_window = custom_parameters[col][0]
                 temp_sep = custom_parameters[col][1]
-            print("col x: {} col sep: {}".format(temp_x_window, temp_sep))
-            temp[col] = df[col][y_start - temp_x_window - temp_sep:y_start - temp_sep]
+            # Anchor x_start from the y_start
+            x_start = y_start - temp_x_window - temp_sep
+            new_df = df[[col]][x_start:x_start + temp_x_window]
+            temp = pd.concat([temp, new_df], axis='columns')
         features.append(temp)
         start += shift
     return features, targets
