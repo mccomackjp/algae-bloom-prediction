@@ -6,6 +6,7 @@ from keras import backend as K
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scripts.logistic_regression_functions as lrf
+import warnings
 
 
 def create_correlation_plots(dataframe, target, figsize=(10, 50)):
@@ -111,6 +112,8 @@ def data_window_reduction(df, time_column, target_column,
         example: max = 1.0, min = 0.0, average = 0.5
     :return: Reduced DataFrame.
     """
+    warnings.warn("data_window_reduction is depricated, use windowize instead.",
+                  DeprecationWarning)
     print("Segmenting...")
     x_windows, y_windows = segment_dataset(df, time_column, x_win_size=x_win_size, y_win_size=y_win_size, shift=shift)
     print("Extracting feature windows...")
@@ -181,10 +184,10 @@ def windowize(df, time_column, target_column,
     :return: Reduced DataFrame.
     """
     print("Segmenting...")
-    x_windows, y_windows = slice_windows(df, time_column, x_win_size=x_win_size,
-                                         y_win_size=y_win_size, shift=shift,
-                                         separation=separation,
-                                         custom_parameters=custom_parameters)
+    x_windows, y_windows = extract_windows(df, time_column, x_win_size=x_win_size,
+                                           y_win_size=y_win_size, shift=shift,
+                                           separation=separation,
+                                           custom_parameters=custom_parameters)
     print("Extracting feature windows...")
     x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
     print("Extracting target windows...")
@@ -194,12 +197,12 @@ def windowize(df, time_column, target_column,
     return x_windows
 
 
-def slice_windows(df, time_col,
-                  x_win_size=pd.Timedelta('3 days 12 hours'),
-                  y_win_size=pd.Timedelta(1, unit='d'),
-                  shift=pd.Timedelta(14, unit='h'),
-                  separation=pd.Timedelta(0),
-                  custom_parameters=None):
+def extract_windows(df, time_col,
+                    x_win_size=pd.Timedelta('3 days 12 hours'),
+                    y_win_size=pd.Timedelta(1, unit='d'),
+                    shift=pd.Timedelta(14, unit='h'),
+                    separation=pd.Timedelta(0),
+                    custom_parameters=None):
     """
     Extracts the data set into feature and target windows.
 
@@ -299,6 +302,8 @@ def segment_dataset(df, time_col,
 
     :return: An array of Dataframes windowed for features and targets
     """
+    warnings.warn("segment_dataset is depricated, use extract_windows instead.",
+                  DeprecationWarning)
     segments = []
     targets = []
     start = df[time_col][0]
