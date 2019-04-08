@@ -95,7 +95,7 @@ def bin_df(df, bins, quantile_binning=False):
 
 
 def data_window_reduction(df, time_column, target_column,
-                          x_win_size=pd.Timedelta('3 days 12 hours'),
+                          x_win_size=pd.Timedelta('28 days'),
                           y_win_size=pd.Timedelta(1, unit='d'),
                           shift=pd.Timedelta(14, unit='h'),
                           percentile=0.95):
@@ -149,7 +149,7 @@ def extract_percentile(windows, time_column, percentile=0.95):
 
 
 def windowize(df, time_column, target_column,
-              x_win_size=pd.Timedelta('3 days 12 hours'),
+              x_win_size=pd.Timedelta('28 days'),
               y_win_size=pd.Timedelta(1, unit='d'),
               shift=pd.Timedelta(14, unit='h'),
               percentile=0.95,
@@ -198,7 +198,7 @@ def windowize(df, time_column, target_column,
 
 
 def extract_windows(df, time_col,
-                    x_win_size=pd.Timedelta('3 days 12 hours'),
+                    x_win_size=pd.Timedelta('28 days'),
                     y_win_size=pd.Timedelta(1, unit='d'),
                     shift=pd.Timedelta(14, unit='h'),
                     separation=pd.Timedelta(0),
@@ -290,7 +290,7 @@ def extract_feature_window(df, x_win_size, separation, y_start, custom_parameter
 
 
 def segment_dataset(df, time_col,
-                    x_win_size=pd.Timedelta('3 days 12 hours'),
+                    x_win_size=pd.Timedelta('28 days'),
                     y_win_size=pd.Timedelta(1, unit='d'),
                     shift=pd.Timedelta(14, unit='h')):
     """
