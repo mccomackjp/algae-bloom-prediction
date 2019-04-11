@@ -5,6 +5,7 @@ from scripts.SurfaceStationReading import SurfaceStationReading
 from keras import backend as K
 import matplotlib.pyplot as plt
 import seaborn as sns
+import tensorflow as tf
 import scripts.logistic_regression_functions as lrf
 
 
@@ -130,11 +131,6 @@ def extract_percentile(windows, time_column, percentile=0.95, debug=False):
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
-        linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
-        lower: i.
-        higher: j.
-        nearest: i or j whichever is nearest.
-        midpoint: (i + j) / 2.
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
 
