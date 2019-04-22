@@ -127,6 +127,69 @@ temp_dic = {'var1': lambda x: 'Freezing'    if x < 0                else None,
             'var9': lambda x: 'Dangerous'   if  x >= 37.78          else None
             }
 
+"ODO (mg/L)" \
+
+'''
+Values taken from https://www.caryinstitute.org/sites/default/files/public/downloads/curriculum-project/1C1_dissolved_oxygen_reading.pdf
+'''
+odo_mgl_dic ={
+        'var1': lambda x: 'Very Low'        if x < 2.0          else None,
+        'var2': lambda x: 'Low'             if 4.0 > x >= 2.0   else None,
+        'var3': lambda x: 'Average'         if 7.0 > x >= 4.0   else None,
+        'var4': lambda x: 'Above Average'   if 11.0 > x >= 7.0  else None,
+        'var5': lambda x: 'High'            if x >= 11.0        else None,
+
+}
+"ODOSat%"
+
+'''
+Values taken from https://www.caryinstitute.org/sites/default/files/public/downloads/curriculum-project/1C1_dissolved_oxygen_reading.pdf
+'''
+odo_percent_dic = {
+    'var1': lambda x: 'Very Low' if x < 60.0 else None,
+    'var2': lambda x: 'Low' if 80.0 > x >= 60.0 else None,
+    'var3': lambda x: 'Average' if 125.0 > x >= 80.0 else None,
+    'var4': lambda x: 'High' if x >= 125.5 else None,
+}
+"'Sp Cond (uS/cm)'"
+
+'''
+values taken from Table 1: from http://cels.uri.edu/docslink/ww/water-quality-factsheets/pH&alkalinity.pdf 
+(US EPA categotry). Lower the Worse
+'''
+sp_cond_us_cm_dic ={
+        'var1': lambda x: 'Critical'          if x < 2.0              else None,
+        'var2': lambda x: 'Endangered'        if 5.0 > x >= 2.0       else None,
+        'var3': lambda x: 'Highly Sensitive'  if 10.0 > x >= 5.0     else None,
+        'var4': lambda x: 'Sensitive'         if 20.0 > x >= 10.0    else None,
+        'var5': lambda x: 'Not Sensitive'     if x >=  20.0  else None,
+}
+'Turbidity (NTU)'
+
+turb_dic = {
+        'var1': lambda x: 'Clear'    if x < 1.0             else None,
+        'var2': lambda x: 'Good'     if 10.0 > x >= 1.0     else None,
+        'var3': lambda x: 'Moderate' if 40.0 > x >= 10.0    else None,
+        'var4': lambda x: 'Hazy'     if 100.0 > x >= 40.0   else None,
+        'var5': lambda x: 'Cloudy'   if 400.0 > x >= 100.0  else None,
+        'var6': lambda x: 'Murky'    if 1000.0 > x >= 400.0 else None,
+        'var7': lambda x: 'Poor'     if x >=  1000.0        else None,
+}
+'datetime'
+'pH'
+ph_dic = {
+    'var1': lambda x: 'Low' if x < 8.5 else None,
+    'var2': lambda x: 'Medium' if 8.7 > x >= 8.5 else None,
+    'var3': lambda x: 'High' if x >= 8.7 else None,
+}
+'pH (mV)'
+
+ph_mv_dic ={
+    'var1': lambda x: 'Low' if x < -120.8 else None,
+    'var2': lambda x: 'Medium' if -112.1 > x >= -120.8 else None,
+    'var3': lambda x: 'High' if x >= -112.1 else None,
+}
+
 '''
 all of the dictionaries in one. Key = column name, value = dictionary defining categories
 '''
@@ -136,5 +199,14 @@ all_dic = {'Wind Speed': windspeed_dic,
            'SNOW': snow_dic,
            'SNWD': snow_depth_dic,
            'TMAX': temp_dic,
-           'TMIN': temp_dic}
+           'TMIN': temp_dic,
+           'Temp C': temp_dic,
+           'Sp Cond (uS/cm)': sp_cond_us_cm_dic,
+           'ODOSat%': odo_percent_dic,
+           'ODO (mg/L)':odo_mgl_dic,
+            'Turbidity (NTU)': turb_dic,
+           'pH': ph_dic,
+           'ph (mV)': ph_mv_dic
+           }
+
 
