@@ -12,7 +12,7 @@ considered. If using a lambda function you need if and an Else because Lambdas N
 '''
 dictionary for 'PRCP' column
 '''
-rainy_dic = {'var1': lambda x: 1 if x > 0 else 0}
+rainy_dict = {'var1': lambda x: 1 if x > 0 else 0}
 
 
 '''
@@ -20,7 +20,7 @@ dictionary for 'Wind Speed'
 Values taken from the Beaufort scale
 '''
 
-windspeed_dic = {'var0':  lambda x: "Calm"              if x < 0.5          else None,
+windspeed_dict = {'var0':  lambda x: "Calm"              if x < 0.5          else None,
                  'var1':  lambda x: "Light Air"         if 1.5 > x >= 0.5   else None,
                  'var2':  lambda x: "Light breeze"      if 3.3 > x >= 1.5   else None,
                  'var3':  lambda x: "Gentle Breeze"     if 5.5 > x >= 3.3   else None,
@@ -58,7 +58,7 @@ dictionary for 'Wind Direction'
 
 '''
 
-winddirection_dic = {'var1':  lambda x: "N"   if x < 11         else None,
+winddirection_dict = {'var1':  lambda x: "N"   if x < 11         else None,
                      'var2':  lambda x: "NNE" if 33 > x >= 11   else None,
                      'var3':  lambda x: "NE"  if 56 > x >= 33   else None,
                      'var4':  lambda x: "ENE" if 78 > x >= 56   else None,
@@ -84,7 +84,7 @@ https://en.wikipedia.org/wiki/Rain#Intensity
 units in mm
 column = 'PRCP'
 '''
-precipitation_dic = {'var1': lambda x: 'None'       if x < 0.001        else None,
+precipitation_dict = {'var1': lambda x: 'None'       if x < 0.001        else None,
                      'var2': lambda x: 'Light'      if 2.5 > x >= 0.001 else None,
                      'var3': lambda x: 'Moderate'   if 7.6 > x >= 2.5   else None,
                      'var4': lambda x: 'Heavy'      if 50.0 > x >= 7.6  else None,
@@ -95,7 +95,7 @@ dictionary for the amount of snow that has fallen
 
 coulmn = 'SNOW'
 '''
-snow_dic = {'var1': lambda x: 'None'     if x < 0.001        else None,
+snow_dict = {'var1': lambda x: 'None'     if x < 0.001        else None,
             'var2': lambda x: 'Light'    if 2.0 > x >= 0.001 else None,
             'var3': lambda x: 'Moderate' if 5.0 > x >= 2.0   else None,
             'var4': lambda x: 'Heavy'    if x >= 5.0         else None}
@@ -105,7 +105,7 @@ dictionary for the snow depth
 
 column = 'SNWD'
 '''
-snow_depth_dic = {'var1': lambda x: 'None'      if x < 0.001         else None,
+snow_depth_dict = {'var1': lambda x: 'None'      if x < 0.001         else None,
                   'var2': lambda x: 'Minimal'   if 5.0 > x >=  0.001 else None,
                   'var3': lambda x: 'Moderate'  if 10.0 > x >= 5.0   else None,
                   'var4': lambda x: 'Deep'      if x >= 10.0         else None}
@@ -116,7 +116,7 @@ dictionary for the maximum air temperature
 
 column = 'TMAX' or 'TMIN'
 '''
-temp_dic = {'var1': lambda x: 'Freezing'    if x < 0                else None,
+temp_dict = {'var1': lambda x: 'Freezing'    if x < 0                else None,
             'var2': lambda x: 'Cold'        if 4.44 > x >= 0        else None,
             'var3': lambda x: 'Cool'        if 10.0 > x >= 4.44     else None,
             'var4': lambda x: 'Moderate'    if 15.56 > x >= 10.0    else None,
@@ -130,11 +130,11 @@ temp_dic = {'var1': lambda x: 'Freezing'    if x < 0                else None,
 '''
 all of the dictionaries in one. Key = column name, value = dictionary defining categories
 '''
-all_dic = {'Wind Speed': windspeed_dic,
-           'Wind Angle': winddirection_dic,
-           'PRCP': precipitation_dic,
-           'SNOW': snow_dic,
-           'SNWD': snow_depth_dic,
-           'TMAX': temp_dic,
-           'TMIN': temp_dic}
+all_dict = {'Wind Speed': windspeed_dict,
+           'Wind Angle': winddirection_dict,
+           'PRCP': precipitation_dict,
+           'SNOW': snow_dict,
+           'SNWD': snow_depth_dict,
+           'TMAX': temp_dict,
+           'TMIN': temp_dict}
 
