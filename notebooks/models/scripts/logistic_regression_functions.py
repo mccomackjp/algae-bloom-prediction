@@ -192,8 +192,20 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
         # Select only x columns in the categorical data frame.
         x_columns_cat = list(set(x_columns).intersection(df_train_cat.columns))
         if len(x_columns_cat) > 0:
-            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat]).astype('float64').values
-            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat]).astype('float64').values
+            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat])
+            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat])
+            # have to make sure that all columns are in both datasets
+            test_col = x_test_cat.columns
+            train_col = x_train_cat.columns
+            for col in train_col:
+                if col not in test_col:
+                    x_test_cat[col] = 0
+            for col in test_col:
+                if col not in train_col:
+                    x_train_cat[col] = 0
+
+            x_train_cat = x_train_cat.values.astype('float64')
+            x_test_cat = x_test_cat.values.astype('float64')
             x_train = np.hstack([x_train, x_train_cat])
             x_test = np.hstack([x_test, x_test_cat])
 
@@ -230,12 +242,10 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            y_column,
                                                            null_model=null_model)
 
-
     if mathop is not None:
         x_train, x_test = alter_columns(x_train, x_test, mathop)
-
     # Train the model
-    model.fit(x_train , y_train)
+    model.fit(x_train, y_train)
     predictions = model.predict(x_test)
     predictions_prob = model.predict_proba(x_test)
     accuracy = accuracy_score(y_test, predictions)
@@ -250,7 +260,7 @@ def roc_plot(actual, predictions):
     Plots a ROC curve.
     :param actual: Array of actual target values
     :param predictions: Predictions made by the model.
-    :return: mMtplotlib ROC plot.
+    :return: matplotlib ROC plot.
     """
     fpr, tpr, thresholds = roc_curve(actual, predictions)
     roc_auc = auc(fpr, tpr)
