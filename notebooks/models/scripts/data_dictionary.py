@@ -2,7 +2,7 @@
 The purpose of this entire file is to keep a single file that will hold all of the data dictionaries in order to bucket
 the individual features. Keeping them all in one file will help keep maintenance easier.
 
-Before each of the individual dictionaries, please keep the column in teh dictionary they are associated with.
+Before each of the individual dictionaries, please keep a comment of the column in the dictionary they are associated with.
 
 Note: the inner variable does not matter but each of the dictionary keys does not matter but the all cases must be
 considered. If using a lambda function you need if and an Else because Lambdas NEED to return something.
