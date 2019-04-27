@@ -332,7 +332,14 @@ for i in range(len(train_dfs)):
     test_dfs[i][squared.columns] = squared
     print("new test shape:", test_dfs[i].shape)
 
+# Add gradient features
+print('############### {} ###############'.format('Gradient Features'))
+for df in train_dfs + test_dfs:
+    gradients = lrf.apply_math_operation(df[x_columns], np.gradient, '_gradient')
+    df[gradients.columns] = gradients
+
 # Add the new columns to x_columns
+x_columns = list(set(x_columns + list(gradients.columns)))
 x_columns = list(set(x_columns + list(squared.columns)))
 print(x_columns)
 
