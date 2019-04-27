@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import tensorflow as tf
 import scripts.logistic_regression_functions as lrf
+import warnings
 
 
 def create_correlation_plots(dataframe, target, figsize=(10, 50)):
@@ -20,7 +21,7 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
     """
     numerical_columns = []
     for col in dataframe.columns:
-        if lrf.is_numerical(dataframe[col]):
+        if col != target and lrf.is_numerical(dataframe[col]):
             numerical_columns.append(col)
     f, axes = plt.subplots(nrows=len(numerical_columns), ncols=1, figsize=figsize)
     for i, col in enumerate(numerical_columns):
@@ -29,8 +30,7 @@ def create_correlation_plots(dataframe, target, figsize=(10, 50)):
         a = (a - a.mean()) / (a.std() * len(a))
         b = (b - b.mean()) / (b.std())
         data = np.correlate(a, b, mode='full')
-        # data = data / len(data)
-        data = data[-len(dataframe[target]):]
+        data = data[-len(dataframe[target]):]  # Grab just the last half of the curve
         temp_column = '{} : {} Correlation'.format(target, col)
         day_ratio = 15 / 60 / 24
         days = [i * day_ratio for i in range(0, len(dataframe[target]))]
@@ -96,7 +96,7 @@ def bin_df(df, bins, quantile_binning=False):
 
 
 def data_window_reduction(df, time_column, target_column,
-                          x_win_size=pd.Timedelta('3 days 12 hours'),
+                          x_win_size=pd.Timedelta('28 days'),
                           y_win_size=pd.Timedelta(1, unit='d'),
                           shift=pd.Timedelta(14, unit='h'),
                           percentile=0.95):
@@ -113,18 +113,20 @@ def data_window_reduction(df, time_column, target_column,
         example: max = 1.0, min = 0.0, average = 0.5
     :return: Reduced DataFrame.
     """
+    warnings.warn("data_window_reduction is depricated, use windowize instead.",
+                  DeprecationWarning)
     print("Segmenting...")
     x_windows, y_windows = segment_dataset(df, time_column, x_win_size=x_win_size, y_win_size=y_win_size, shift=shift)
     print("Extracting feature windows...")
     x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
     print("Extracting target windows...")
-    y_windows = extract_percentile(y_windows, time_column, percentile=percentile, debug=True)
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile)
     print("Combining extractions...")
     x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95, debug=False):
+def extract_percentile(windows, time_column, percentile=0.95):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
@@ -142,10 +144,152 @@ def extract_percentile(windows, time_column, percentile=0.95, debug=False):
     return extracted.set_index(time_column + 'Index')
 
 
-def segment_dataset(df, time_col,
-                    x_win_size=pd.Timedelta(2, unit='d'),
+def windowize(df, time_column, target_column,
+              x_win_size=pd.Timedelta('28 days'),
+              y_win_size=pd.Timedelta(1, unit='d'),
+              shift=pd.Timedelta(14, unit='h'),
+              percentile=0.95,
+              separation=pd.Timedelta(0),
+              custom_parameters=None):
+    """
+    Reduces data based on a sliding window method.
+
+    :param custom_parameters:
+    :param df: DataFrame to reduce
+    :param time_column: name of the datetime object column in the DataFrame
+    :param target_column: Column which is the target for predictions.
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param y_win_size: Timedelta for the size of target windows.
+    :param shift: Timedelta for the amount to shift windows by.
+    :param percentile: float percentage of the value to extract.
+        example: max = 1.0, min = 0.0, average = 0.5
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param custom_parameters: Dictionary of dictionaries containing custom x_window_size
+        and separation amounts for specific columns (all parameters are optional).
+        'x_win_size' and 'separation' are the only 2 custom parameter keys in use.
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
+
+    :return: Reduced DataFrame.
+    """
+    print("Segmenting...")
+    x_windows, y_windows = extract_windows(df, time_column, x_win_size=x_win_size,
+                                           y_win_size=y_win_size, shift=shift,
+                                           separation=separation,
+                                           custom_parameters=custom_parameters)
+    print("Extracting feature windows...")
+    x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
+    print("Extracting target windows...")
+    y_windows = extract_percentile(y_windows, time_column, percentile=percentile)
+    print("Combining extractions...")
+    x_windows[target_column] = y_windows[target_column].values
+    return x_windows
+
+
+def extract_windows(df, time_col,
+                    x_win_size=pd.Timedelta('28 days'),
                     y_win_size=pd.Timedelta(1, unit='d'),
-                    shift=pd.Timedelta(1, unit='h')):
+                    shift=pd.Timedelta(14, unit='h'),
+                    separation=pd.Timedelta(0),
+                    custom_parameters=None):
+    """
+    Extracts the data set into feature and target windows.
+
+    :param df: the data frame to segment into windows, must be indexed by datetime
+    :param time_col: the name of the time column in the dataset
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param y_win_size: Timedelta for the size of target windows.
+    :param shift: Timedelta for the amount to shift windows by.
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param custom_parameters: Dictionary of dictionaries containing custom shift
+        and separation amounts for specific columns (all parameters are optional).
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
+
+    :return: An array of Dataframes windowed for features and targets
+    """
+    if custom_parameters is None:
+        custom_parameters = dict()
+    features = []
+    targets = []
+    start = df[time_col][0]
+    end = df[time_col][len(df[time_col]) - 1]
+    offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
+    max_x_win = x_win_size + separation
+    # Check if the custom window and separation values are larger than the default.
+    for key, value in custom_parameters.items():
+        temp_x_win = value['x_win_size'] if 'x_win_size' in value else x_win_size
+        temp_sep = value['separation'] if 'separation' in value else separation
+        max_x_win = max(max_x_win, temp_x_win + temp_sep)
+    while start + max_x_win + y_win_size <= end:
+        # We want to anchor off of the start of the y window
+        y_start = start + max_x_win
+        targets.append(df[y_start + offset:y_start + y_win_size])
+        feature_window = extract_feature_window(df, x_win_size, separation, y_start, custom_parameters)
+        features.append(feature_window)
+        start += shift
+    return features, targets
+
+
+def extract_feature_window(df, x_win_size, separation, y_start, custom_parameters):
+    """
+    Extracts a feature window from the given DataFrame.
+
+    :param df: DataFrame to extract from
+    :param x_win_size: Timedelta for the size of feature windows.
+    :param separation: Timedelta for the amount to separate the x window and y window by
+    :param y_start: DateTime object of target window start point.
+    :param custom_parameters: Dictionary of dictionaries containing custom shift
+        and separation amounts for specific columns (all parameters are optional).
+        where the key is the column name, and the value is a dictionary of Timedeltas,
+        with key 'x_win_size' being the x window size,
+        and key 'separation' being the separation from the y window amount.
+        generic example:
+            custom_parameters = {'column name': {'x_win_size':pd.Timedelta(), 'separation':pd.Timedelta()}}
+
+        sepecific use example:
+            custom_paramaters =
+            {'Temp C': {'x_win_size':pd.Timedelta('7 days'), 'separation':pd.Timedelta('21 days')},
+              'pH': {'x_win_size':pd.Timedelta('4 days'), 'separation':pd.Timedelta(0)}}
+
+    :return: Extracted feature window as a DataFrame.
+    """
+    feature_window = pd.DataFrame()
+    for col in df.columns:
+        temp_x_window = x_win_size
+        temp_sep = separation
+        if col in custom_parameters:
+            if 'x_win_size' in custom_parameters[col]:
+                temp_x_window = custom_parameters[col]['x_win_size']
+            if 'separation' in custom_parameters[col]:
+                temp_sep = custom_parameters[col]['separation']
+        # Anchor x_start from the y_start
+        x_start = y_start - temp_x_window - temp_sep
+        new_df = df[[col]][x_start:x_start + temp_x_window]
+        feature_window = pd.concat([feature_window, new_df], axis='columns')
+    return feature_window
+
+
+def segment_dataset(df, time_col,
+                    x_win_size=pd.Timedelta('28 days'),
+                    y_win_size=pd.Timedelta(1, unit='d'),
+                    shift=pd.Timedelta(14, unit='h')):
     """
     Segments the data set based on the parameters that are passed in.
 
@@ -157,11 +301,13 @@ def segment_dataset(df, time_col,
 
     :return: An array of Dataframes windowed for features and targets
     """
+    warnings.warn("segment_dataset is depricated, use extract_windows instead.",
+                  DeprecationWarning)
     segments = []
     targets = []
     start = df[time_col][0]
     end = df[time_col][len(df[time_col]) - 1]
-    offset = pd.Timedelta(1, unit='s')  # to remove overlap between x and y
+    offset = pd.Timedelta(1, unit='s')  # removes overlap between x and y since indexing is inclusive
     while start + x_win_size + y_win_size <= end:
         segments.append(df[start:start + x_win_size])
         targets.append(df[start + x_win_size + offset: start + x_win_size + y_win_size])
