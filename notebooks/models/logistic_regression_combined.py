@@ -285,6 +285,7 @@ for i in range(0, len(train_dfs)):
         test_dfs[i], 'datetime', target_column)
     print()
 
+
 # ## Bucket/Bin Features
 # 
 # ### Bin all numerical data
@@ -316,6 +317,23 @@ print(test_dfs[test_index].dtypes)
 
 # Add the new columns to x columns
 x_columns = list(set(x_columns + new_columns))
+print(x_columns)
+
+# Add squared features
+print('############### {} ###############'.format('Square Features'))
+for i in range(len(train_dfs)):
+    squared = lrf.apply_math_operation(train_dfs[i][x_columns], math_operation, "_squared")
+    print("old train shape:", train_dfs[i].shape)
+    train_dfs[i][squared.columns] = squared
+    print("new train shape:", train_dfs[i].shape)
+
+    squared = lrf.apply_math_operation(test_dfs[i][x_columns], math_operation, "_squared")
+    print("old test shape:", test_dfs[i].shape)
+    test_dfs[i][squared.columns] = squared
+    print("new test shape:", test_dfs[i].shape)
+
+# Add the new columns to x_columns
+x_columns = list(set(x_columns + list(squared.columns)))
 print(x_columns)
 
 # ## Add Weather Categories
@@ -503,25 +521,4 @@ accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.gree
     model, train_dfs[train_index], test_dfs[test_index], x_columns,
     'bloom', sorted_columns)
 
-# ### Greedy model with Squaring Features
 
-# In[36]:
-print('############### {} ###############'.format('Greedy model with Squaring Features'))
-
-
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-# Sort columns by accuracy
-sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
-                                            test_dfs[test_index],
-                                            x_columns,
-                                            'bloom', mathop=math_operation)
-
-# In[37]:
-
-
-# create greedy model
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-
-accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns,
-    'bloom', sorted_columns, mathop=math_operation)

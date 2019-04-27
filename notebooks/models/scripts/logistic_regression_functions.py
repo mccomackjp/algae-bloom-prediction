@@ -379,7 +379,6 @@ def cross_validate(model, df_early, df_late, x_columns, y_column):
     :param df_late: The already cleaned, ready to train list of DataFrames of the later year
     :param x_columns: the columns that are going to be used to train on
     :param y_column: the target column name
-    :param mathop: the math operation if needed
 
     :return: a dictionary of results with keys representing the trainset<index>_testset<index>
     """
