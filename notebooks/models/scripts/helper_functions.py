@@ -5,6 +5,7 @@ from scripts.SurfaceStationReading import SurfaceStationReading
 from keras import backend as K
 import matplotlib.pyplot as plt
 import seaborn as sns
+import tensorflow as tf
 import scripts.logistic_regression_functions as lrf
 import warnings
 
@@ -131,11 +132,6 @@ def extract_percentile(windows, time_column, percentile=0.95):
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
-        linear: i + (j - i) * fraction, where fraction is the fractional part of the index surrounded by i and j.
-        lower: i.
-        higher: j.
-        nearest: i or j whichever is nearest.
-        midpoint: (i + j) / 2.
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
 
@@ -401,3 +397,39 @@ def extract_weather_data(filename):
         contents = file.readlines()
     contents = [SurfaceStationReading(x) for x in contents]
     return contents
+
+
+def _apply_dictionary(value, dict):
+    """
+
+    Helper method to be used when bucketing columns. This function applies the dictionary (dict) to the specific
+    'value' value in the. The dictionary must have all basis covered or check in order to be completed.
+    :param value: The value to have to categorize
+    :param dict: The dictionary to be applied.
+    :return: the category of the value
+    """
+
+    for key in dict.keys():
+        ret_val = dict[key](value)
+        if ret_val is not None:
+            return ret_val
+
+
+def bucket_column(df, column, dictionary, name=''):
+    """
+    Buckets the specific column in the DataFrame
+
+    :param df: the DataFrame to bucket
+    :param column: the column of the DataFrame to bucket
+    :param dictionary: the dictionary with the conditionals within. all conditions met to guarantee the working as
+                        intended
+    :param name: the name to be appended to the column.
+
+    :return: the altered DataFrame with a new column of 'column' (passed in) + '_bucket' if the name of the column was
+            was not specified; Otherwise just the name that was passed in.
+    """
+
+    if name != '':
+        df[name] = df[column].apply(_apply_dictionary, args=(dictionary,)).astype('category')
+    else:
+        df[column + '_bucket'] = df[column].apply(_apply_dictionary, args=(dictionary,)).astype('category')
