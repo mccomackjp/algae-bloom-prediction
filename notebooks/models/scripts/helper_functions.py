@@ -124,7 +124,6 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
-
 def extract_percentile(windows, time_column, percentile=0.95, debug=False):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
@@ -217,7 +216,7 @@ def create_time_of_day(x):
     retval = ''
     if x.hour >= 22 or x.hour <= 4:
         retval = 'night'
-    elif x.hour <= 6: 
+    elif x.hour <= 6:
         retval = 'dawn'
     elif x.hour <= 10:
         retval = 'morning'
@@ -229,6 +228,7 @@ def create_time_of_day(x):
         retval = 'evening'
     return retval
 
+
 def round_time(dt, round_to=900):
     """
     Round a date time object to any time lapse in seconds
@@ -236,9 +236,10 @@ def round_time(dt, round_to=900):
     :param round_to: The closes number of seconds to round to, default 15 minutes
     :return: The rounded datetime object to the roundTo time
     """
-    seconds = ( dt.replace(tzinfo=None) - dt.min ).seconds
-    rounding = (seconds + round_to/2) // round_to * round_to
-    return dt + datetime.timedelta(0, rounding-seconds, -dt.microsecond)
+    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
+    rounding = (seconds + round_to / 2) // round_to * round_to
+    return dt + datetime.timedelta(0, rounding - seconds, -dt.microsecond)
+
 
 def extract_weather_data(filename):
     """
