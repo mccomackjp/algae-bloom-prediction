@@ -168,8 +168,9 @@ def windowize(df, time_column, target_column,
     :param percentile: float percentage of the value to extract.
         example: max = 1.0, min = 0.0, average = 0.5
     :param separation: Timedelta for the amount to separate the x window and y window by
-    :param custom_parameters: Dictionary of dictionaries containing custom shift
+    :param custom_parameters: Dictionary of dictionaries containing custom x_window_size
         and separation amounts for specific columns (all parameters are optional).
+        'x_win_size' and 'separation' are the only 2 custom parameter keys in use.
         where the key is the column name, and the value is a dictionary of Timedeltas,
         with key 'x_win_size' being the x window size,
         and key 'separation' being the separation from the y window amount.
