@@ -12,13 +12,17 @@ def add_target_column(data_frames, target_column='BGA-Phycocyanin RFU',
     """
     Adds a target categorical column to the given list of data frames.
 
-    :param data_frames: List of data frames to add column to.
+    :param data_frames: data frame or List of data frames to add column to.
     :param target_column: Name of column to create the categorical column from.
     :param new_target_name: Name of the new target column.
     :param threshold: Threshold to set each value of the new target with.
     """
-    for df in data_frames:
-        df[new_target_name] = df[target_column].apply(
+    if isinstance(data_frames, list):
+        for df in data_frames:
+            df[new_target_name] = df[target_column].apply(
+                lambda x: 1 if x > threshold else 0)
+    else:
+        data_frames[new_target_name] = data_frames[target_column].apply(
             lambda x: 1 if x > threshold else 0)
 
 
