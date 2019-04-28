@@ -2,12 +2,11 @@
 The purpose of this entire file is to keep a single file that will hold all of the data dictionaries in order to bucket
 the individual features. Keeping them all in one file will help keep maintenance easier.
 
-Before each of the individual dictionaries, please keep the column in teh dictionary they are associated with.
+Before each of the individual dictionaries, please keep a comment of the column in the dictionary they are associated with.
 
 Note: the inner variable does not matter but each of the dictionary keys does not matter but the all cases must be
 considered. If using a lambda function you need if and an Else because Lambdas NEED to return something.
 """
-
 
 '''
 dictionary for 'PRCP' column
@@ -34,6 +33,7 @@ windspeed_dict = {'Calm_bucket':            lambda x: "Calm"              if x <
                   'Violent_Storm_bucket':   lambda x: "Violent Storm"     if 32.6 > x >= 28.4 else None,
                   'Hurricane_Force_bucket': lambda x: "Hurricane Force"  if x >= 32.6        else None
                  }
+
 
 '''
 Values taken from http://snowfence.umn.edu/Components/winddirectionanddegreeswithouttable3.htm
@@ -77,6 +77,7 @@ winddirection_dict = {'N_bucket_bottom':   lambda x: "N"   if x < 11         els
                       'N_bucket_top':   lambda x: "N"   if x >= 348       else None
                      }
 
+
 '''
 dictionary for the amount of precipitation tha that fallen. Categories taken from 
 https://en.wikipedia.org/wiki/Rain#Intensity
@@ -100,6 +101,7 @@ snow_dict = {'None_bucket':     lambda x: 'None'     if x < 0.001        else No
              'Moderate_bucket': lambda x: 'Moderate' if 5.0 > x >= 2.0   else None,
              'Heavy_bucket':    lambda x: 'Heavy'    if x >= 5.0         else None}
 
+
 '''
 dictionary for the snow depth
 
@@ -109,6 +111,7 @@ snow_depth_dict = {'None_bucket':     lambda x: 'None'      if x < 0.001        
                    'Minimal_bucket':  lambda x: 'Minimal'   if 5.0 > x >=  0.001 else None,
                    'Moderate_bucket': lambda x: 'Moderate'  if 10.0 > x >= 5.0   else None,
                    'Deep_bucket':     lambda x: 'Deep'      if x >= 10.0         else None}
+
 
 
 '''
@@ -126,6 +129,7 @@ temp_dict = {'Freezing_bucket':  lambda x: 'Freezing'    if x < 0               
              'Extreme_bucket':   lambda x: 'Extreme'     if 37.78 > x >= 32.22   else None,
              'Dangerous_bucket': lambda x: 'Dangerous'   if  x >= 37.78          else None
             }
+
 
 "ODO (mg/L)" \
 
@@ -208,5 +212,3 @@ all_dict = {'Wind Speed': windspeed_dict,
             'pH': ph_dict,
             'pH (mV)': ph_mv_dict
            }
-
-
