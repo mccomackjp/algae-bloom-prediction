@@ -507,7 +507,7 @@ lrf.roc_plot(test[['bloom']].values, predictions)
 # ### Greedy Model With Base Columns
 
 # In[33]:
-print('############### {} ###############'.format('Recursive Greedy Model'))
+print('############### {} ###############'.format('Base Columns Greedy Model'))
 
 
 # create greedy model
