@@ -382,37 +382,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     return accuracy, recall, precision, cm, predictions, predictions_prob, greedy_columns
 
 
-def recursive_greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[]):
-    accuracy, recall, precision, cm, predictions, predictions_prob, columns = greedy_model(
-        model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns)
-    if set(base_columns) != set(columns):  # Greedy columns have changed so continue recursion
-        temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, temp_columns = \
-            recursive_greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, columns)
-        if temp_accuracy > accuracy:
-            print("\nUpdating recursive greedy model")
-            accuracy = temp_accuracy
-            recall = temp_recall
-            precision = temp_precision
-            cm = temp_cm
-            predictions = temp_pred
-            predictions_prob = temp_pred_prob
-            columns = temp_columns
-        print()
-        return accuracy, recall, precision, cm, predictions, predictions_prob, columns
-
-    print("Final recursive greedy columns:", columns)
-    print("Final recursive greedy accuracy", accuracy)
-    print("Final recursive greedy recall:", recall)
-    print("Final recursive greedy precision:", precision)
-    print("Final recursive greedy confusion matrix:\n", cm)
-    print("Cross validated results:")
-    temp_accuracy, temp_recall, temp_precision, _, _, _, _, = train_model(model, testing_df, training_df,
-                                                                          columns, y_column, verbose=1)
-    print("Mean accuracy", np.mean([accuracy, temp_accuracy]))
-    print("Mean recall:", np.mean([recall, temp_recall]))
-    print("Mean precision:", np.mean([precision, temp_precision]))
-
-
 def cross_validate(model, df_early, df_late, x_columns, y_column):
     """
     Cross validate the early and late DataFrames with each other.

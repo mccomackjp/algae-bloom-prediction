@@ -298,10 +298,10 @@ presegmented_plot = pd.DataFrame(
 for i in range(0, len(train_dfs)):
     print("Windowizing 2017 data set:", i)
     train_dfs[i] = hf.windowize(
-        train_dfs[i], 'datetime', target_column)
+        train_dfs[i], 'datetime', target_column, custom_parameters=custom_params)
     print("Windowizing 2018 data set:", i)
     test_dfs[i] = hf.windowize(
-        test_dfs[i], 'datetime', target_column)
+        test_dfs[i], 'datetime', target_column, custom_parameters=custom_params)
     print()
 
 
@@ -513,7 +513,7 @@ print('############### {} ###############'.format('Recursive Greedy Model'))
 # create greedy model
 model = SGDClassifier(max_iter=max_iter, loss=loss)
 
-accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.recursive_greedy_model(
+accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
     model, train, test, x_columns,
     'bloom', sorted_columns, base_columns)
 
