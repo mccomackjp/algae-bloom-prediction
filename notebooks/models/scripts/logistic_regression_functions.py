@@ -221,7 +221,7 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False, verbose=0):
     """
     Trains a Scikit-Learn classification model on the given training and testing data frames.
 
@@ -232,6 +232,7 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
+    :param verbose: 1 = print results. 0 = print nothing.
 
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
 
@@ -252,6 +253,12 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     recall = recall_score(y_test, predictions)
     precision = precision_score(y_test, predictions)
     cm = confusion_matrix(y_test, predictions)
+    if verbose:
+        print("Accuracy", accuracy)
+        print("Recall:", recall)
+        print("Precision", precision)
+        print("Confusion Matrix:\n", cm)
+        print()
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
@@ -366,7 +373,44 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy recall:", recall)
     print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
-    return accuracy, recall, precision, cm, predictions, predictions_prob, model
+    print("Cross validated results:")
+    temp_accuracy, temp_recall, temp_precision, _, _, _, _, = train_model(model, testing_df, training_df,
+                                                                          greedy_columns, y_column, verbose=1)
+    print("Mean accuracy", np.mean([accuracy, temp_accuracy]))
+    print("Mean recall:", np.mean([recall, temp_recall]))
+    print("Mean precision:", np.mean([precision, temp_precision]))
+    return accuracy, recall, precision, cm, predictions, predictions_prob, greedy_columns
+
+
+def recursive_greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[]):
+    accuracy, recall, precision, cm, predictions, predictions_prob, columns = greedy_model(
+        model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns)
+    if set(base_columns) != set(columns):  # Greedy columns have changed so continue recursion
+        temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, temp_columns = \
+            recursive_greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, columns)
+        if temp_accuracy > accuracy:
+            print("\nUpdating recursive greedy model")
+            accuracy = temp_accuracy
+            recall = temp_recall
+            precision = temp_precision
+            cm = temp_cm
+            predictions = temp_pred
+            predictions_prob = temp_pred_prob
+            columns = temp_columns
+        print()
+        return accuracy, recall, precision, cm, predictions, predictions_prob, columns
+
+    print("Final recursive greedy columns:", columns)
+    print("Final recursive greedy accuracy", accuracy)
+    print("Final recursive greedy recall:", recall)
+    print("Final recursive greedy precision:", precision)
+    print("Final recursive greedy confusion matrix:\n", cm)
+    print("Cross validated results:")
+    temp_accuracy, temp_recall, temp_precision, _, _, _, _, = train_model(model, testing_df, training_df,
+                                                                          columns, y_column, verbose=1)
+    print("Mean accuracy", np.mean([accuracy, temp_accuracy]))
+    print("Mean recall:", np.mean([recall, temp_recall]))
+    print("Mean precision:", np.mean([precision, temp_precision]))
 
 
 def cross_validate(model, df_early, df_late, x_columns, y_column):
@@ -390,10 +434,10 @@ def cross_validate(model, df_early, df_late, x_columns, y_column):
                                                                                             df_early[i],
                                                                                             x_columns, y_column,
                                                                                             null_model=False)
-            results['dfl{}_dfe{}'.format(j,i)] = (accuracy, recall, precision)
+            results['dfl{}_dfe{}'.format(j, i)] = (accuracy, recall, precision)
             accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early[i],
                                                                                             df_late[j],
                                                                                             x_columns, y_column,
                                                                                             null_model=False)
-            results['dfe{}_dfl{}'.format(i,j)] = (accuracy, recall, precision)
+            results['dfe{}_dfl{}'.format(i, j)] = (accuracy, recall, precision)
     return results
