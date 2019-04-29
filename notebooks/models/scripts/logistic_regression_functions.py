@@ -12,17 +12,28 @@ def add_target_column(data_frames, target_column='BGA-Phycocyanin RFU',
     """
     Adds a target categorical column to the given list of data frames.
 
-    :param data_frames: List of data frames to add column to.
+    :param data_frames: data frame or List of data frames to add column to.
     :param target_column: Name of column to create the categorical column from.
     :param new_target_name: Name of the new target column.
     :param threshold: Threshold to set each value of the new target with.
     """
-    for df in data_frames:
-        df[new_target_name] = df[target_column].apply(
+    if isinstance(data_frames, list):
+        for df in data_frames:
+            df[new_target_name] = df[target_column].apply(
+                lambda x: 1 if x > threshold else 0)
+    else:
+        data_frames[new_target_name] = data_frames[target_column].apply(
             lambda x: 1 if x > threshold else 0)
 
 
 def import_df_data(files, drop_columns=[]):
+    """
+    Imports csv data into a list of dataframes.
+
+    :param files: csv iles to import from.
+    :param drop_columns: Columns to drop from the dataframe.
+    :return: list of dataframes with imported data.
+    """
     data_frames = []
     for file in files:
         df = pd.read_csv(file)
@@ -102,27 +113,32 @@ def scale_columns(train, test, scaler=StandardScaler()):
     
     :return: ret_train, ret_test tuple of the scaled values
     """
-    
+
     ret_train = scaler.fit_transform(train)
     ret_test = scaler.transform(test)
+
     return ret_train, ret_test
 
 
-def alter_columns(train, test, op):
+def apply_math_operation(dataframe, op, name_addition=""):
     """
-    Alters the columns based on the numpy mathematical operation that is passed in
+    Applys a math operation to the given DataFrame object
+     based on the numpy mathematical operation that is passed in.
 
-    :param train: the training Numpy array to have the columns altered
-    :param test: the testing Numpy array to have the columns altered
+    :param dataframe: DataFrame to apply math operation to.
     :param op: the functools.partial(Numpy mathematical) operation to do on the Data
+    :param name_addition: appends the given string to the current column name for differentiation from original columns.
 
-    :return: train, test with the altered values for the NP array
+    :return: DataFrame with math operation applied to all numerical columns.
     """
-    return op(train), op(test)
+    result = dataframe[[]]
+    for col in dataframe.columns:
+        if is_numerical(dataframe[col]):
+            result[col + name_addition] = op(dataframe[col])
+    return result
 
 
 def impute_columns(train, test, imputer):
-    
     """
     Imputes the columns based on the DataFrame that is passed in
     
@@ -134,7 +150,7 @@ def impute_columns(train, test, imputer):
     """
     ret_train = imputer.fit_transform(train)
     ret_test = imputer.transform(test)
-    
+
     return ret_train, ret_test
 
 
@@ -166,7 +182,6 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     y_train = y_train[y_column].astype('float64').values
     y_test = y_test[y_column].astype('float64').values
 
-
     if len(x_columns_num) > 0:
         # Scale the numerical data
         scaler = StandardScaler()
@@ -181,8 +196,20 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
         # Select only x columns in the categorical data frame.
         x_columns_cat = list(set(x_columns).intersection(df_train_cat.columns))
         if len(x_columns_cat) > 0:
-            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat]).astype('float64').values
-            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat]).astype('float64').values
+            x_train_cat = pd.get_dummies(df_train_cat[x_columns_cat])
+            x_test_cat = pd.get_dummies(df_test_cat[x_columns_cat])
+            # have to make sure that all columns are in both datasets
+            test_col = x_test_cat.columns
+            train_col = x_train_cat.columns
+            for col in train_col:
+                if col not in test_col:
+                    x_test_cat[col] = 0
+            for col in test_col:
+                if col not in train_col:
+                    x_train_cat[col] = 0
+
+            x_train_cat = x_train_cat.values.astype('float64')
+            x_test_cat = x_test_cat.values.astype('float64')
             x_train = np.hstack([x_train, x_train_cat])
             x_test = np.hstack([x_test, x_test_cat])
 
@@ -194,8 +221,7 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False,
-                mathop=None):
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
     """
     Trains a Scikit-Learn classification model on the given training and testing data frames.
 
@@ -206,7 +232,6 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
-    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
 
@@ -217,10 +242,7 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            testing_df,
                                                            x_columns,
                                                            y_column,
-                                                           null_model)
-
-    if mathop is not None:
-        x_train, x_test = alter_columns(x_train, x_test, mathop)
+                                                           null_model=null_model)
 
     # Train the model
     model.fit(x_train, y_train)
@@ -238,7 +260,7 @@ def roc_plot(actual, predictions):
     Plots a ROC curve.
     :param actual: Array of actual target values
     :param predictions: Predictions made by the model.
-    :return: mMtplotlib ROC plot.
+    :return: matplotlib ROC plot.
     """
     fpr, tpr, thresholds = roc_curve(actual, predictions)
     roc_auc = auc(fpr, tpr)
@@ -249,9 +271,8 @@ def roc_plot(actual, predictions):
     plt.plot(fpr, tpr)
 
 
-def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
-                           optimize_accuracy=True, optimize_recall=False, optimize_precision=False,
-                           mathop=None):
+def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column, optimize_accuracy=True,
+                           optimize_recall=False, optimize_precision=False, verbose=1):
     """
     Trains and sorts each column in the x_columns by accuracy, recall, or precision
 
@@ -263,31 +284,34 @@ def sort_columns_by_metric(model, training_df, testing_df, x_columns, y_column,
     :param optimize_accuracy: True if you wish optimize by accuracy (default is True)
     :param optimize_recall: True if you wish optimize by recall (default is False)
     :param optimize_precision: True if you wish optimize by precision (default is False)
-    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
+    :param verbose: 1 = print results. 0 = print nothing.
+
 
     :return: List of sorted column names
     """
     models = {}
     for column in x_columns:
-        print("Training model with:", column)
+        if verbose:
+            print("Training model with:", column)
         accuracy, recall, precision, cm, _, _, _ = train_model(
-            model, training_df, testing_df, [column], y_column, mathop=mathop)
+            model, training_df, testing_df, [column], y_column)
         models[column] = (accuracy * optimize_accuracy) + (recall * optimize_recall) + (precision * optimize_precision)
-        print("Accuracy", accuracy)
-        print("Recall:", recall)
-        print("Precision", precision)
-        print("Confusion Matrix:\n", cm)
-        print()
+        if verbose:
+            print("Accuracy", accuracy)
+            print("Recall:", recall)
+            print("Precision", precision)
+            print("Confusion Matrix:\n", cm)
+            print()
 
     # sort columns by the sum of selected metrics first
     sorted_columns = sorted(models, key=models.get, reverse=True)
-    for column in sorted_columns:
-        print("{} metric value: {}".format(column, models[column]))
+    if verbose:
+        for column in sorted_columns:
+            print("{} metric value: {}".format(column, models[column]))
     return sorted_columns
 
 
-
-def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
+def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_columns, base_columns=[]):
     """
     Creates a greedy model based on columns which only improve recall.
 
@@ -298,7 +322,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     :param y_column: Target column to be predicted.
     :param sorted_columns: List of sorted columns by recall.
     :param base_columns: Base columns to start the greedy model with.
-    :param mathop: the functools.partial(Numpy mathematical) operation to do on the Data
 
     :return: tuple of recall, precision, and confusing matrix metrics,
     as well as predictions made, predictions probabilities, and the model itself.
@@ -306,13 +329,14 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     # Start with a base null model
     if len(base_columns) > 0:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-            model, training_df, testing_df, base_columns, y_column, mathop=mathop)
+            model, training_df, testing_df, base_columns, y_column)
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
-          model, training_df, testing_df, x_columns, y_column, null_model=True, mathop=mathop)
+            model, training_df, testing_df, x_columns, y_column, null_model=True)
+
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
-    print('greedy_columns:', greedy_columns)
+    print('base_columns:', base_columns)
     print('sorted_columns:', sorted_columns)
     sorted_columns = remove_matching_strings(sorted_columns, greedy_columns)
     print('adjusted sorted_columns:', sorted_columns)
@@ -321,7 +345,7 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
         temp_columns = greedy_columns + [column]
         print("Training model with:", temp_columns)
         temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-            temp_model = train_model(model, training_df, testing_df, temp_columns, y_column, mathop=mathop)
+        temp_model = train_model(model, training_df, testing_df, temp_columns, y_column)
         print("Test model accuracy:", temp_accuracy)
         print("Test model recall:", temp_recall)
         print("Test model precision:", temp_precision)
@@ -345,34 +369,33 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
-def cross_validate(model, df_early, df_late, x_columns, y_column, sorted_columns, base_columns=[], mathop=None):
-    """
-    Cross validate the data with a 'brute force' approach
 
-    :param model: the model that s going to be used in training.
-    :param df_early: List of pre cleaned and ready to train DataFrames with the earlier years
-    :param df_late: List of pre cleaned and ready to train DataFrames with the later years
+def cross_validate(model, df_early, df_late, x_columns, y_column):
+    """
+    Cross validate the early and late DataFrames with each other.
+
+    :param model: the model that is going to be used in training.
+    :param df_early: The already cleaned, ready to train list of DataFrames of the earlier year
+    :param df_late: The already cleaned, ready to train list of DataFrames of the later year
     :param x_columns: the columns that are going to be used to train on
     :param y_column: the target column name
-    :param sorted_columns: the list of sorted columns
-    :param base_columns: the columns to always use
-    :param mathop: the math operation if needed
 
     :return: a dictionary of results with keys representing the trainset<index>_testset<index>
     """
 
     results = {}
-    for i, dfe in enumerate(df_early):
-        for j, dfl in enumerate(df_late):
-            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfl, dfe,
-                                                                                                 x_columns, y_column,
-                                                                                                 sorted_columns,
-                                                                                                 base_columns, mathop)
-            results['dfl{}_dfe{}'.format(i, j)] = (accuracy, recall, precision)
-            accuracy, recall, precision, cm, predictions, predictions_prob, model = greedy_model(model, dfe, dfl,
-                                                                                                 x_columns, y_column,
-                                                                                                 sorted_columns,
-                                                                                                 base_columns, mathop)
-            results['dfe{}_dfl{}'.format(j, i)] = (accuracy, recall, precision)
-    return results
 
+
+    for i in range(len(df_early)):
+        for j in range(len(df_late)):
+            accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_late[j],
+                                                                                            df_early[i],
+                                                                                            x_columns, y_column,
+                                                                                            null_model=False)
+            results['dfl{}_dfe{}'.format(j,i)] = (accuracy, recall, precision)
+            accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early[i],
+                                                                                            df_late[j],
+                                                                                            x_columns, y_column,
+                                                                                            null_model=False)
+            results['dfe{}_dfl{}'.format(i,j)] = (accuracy, recall, precision)
+    return results
