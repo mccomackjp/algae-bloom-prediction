@@ -243,7 +243,6 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
                                                            x_columns,
                                                            y_column,
                                                            null_model=null_model)
-
     # Train the model
     model.fit(x_train, y_train)
     predictions = model.predict(x_test)
@@ -369,7 +368,6 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
-
 def cross_validate(model, df_early, df_late, x_columns, y_column):
     """
     Cross validate the early and late DataFrames with each other.
@@ -384,7 +382,6 @@ def cross_validate(model, df_early, df_late, x_columns, y_column):
     """
 
     results = {}
-
 
     for i in range(len(df_early)):
         for j in range(len(df_late)):

@@ -399,18 +399,17 @@ def extract_weather_data(filename):
     return contents
 
 
-def _apply_dictionary(value, dict):
+def _apply_dictionary(value, dictionary):
     """
-
     Helper method to be used when bucketing columns. This function applies the dictionary (dict) to the specific
     'value' value in the. The dictionary must have all basis covered or check in order to be completed.
     :param value: The value to have to categorize
-    :param dict: The dictionary to be applied.
+    :param dictionary: The dictionary to be applied.
     :return: the category of the value
     """
 
-    for key in dict.keys():
-        ret_val = dict[key](value)
+    for key in dictionary.keys():
+        ret_val = dictionary[key](value)
         if ret_val is not None:
             return ret_val
 
