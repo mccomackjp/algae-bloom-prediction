@@ -44,6 +44,7 @@ class TestDataSegment(unittest.TestCase):
         # Create a custom variables for the custom column
         parameters = {'custom': {'x_win_size': pd.Timedelta('1 day'),
                                  'separation': pd.Timedelta('1 day')}}
+        percentile_array = [0.5,0.7,0.8]
         segments, targets = hf.extract_windows(self.df, self.time_column,
                                                x_win_size=pd.Timedelta(2, unit='d'),
                                                y_win_size=pd.Timedelta(2, unit='d'),
@@ -52,9 +53,16 @@ class TestDataSegment(unittest.TestCase):
         x_df = hf.extract_percentile(segments, self.time_column, 0.5)
         y_df = hf.extract_percentile(targets, self.time_column, 0.5)
 
+        x_df_arr = hf.extract_percentile(segments, self.time_column, percentile_array)
+        y_df_arr = hf.extract_percentile(targets, self.time_column,  percentile_array)
+        print(x_df_arr.head())
         # Check that the number of rows matches the number of windows in segments/targets
         self.assertEqual(x_df.shape[0], len(segments))
         self.assertEqual(y_df.shape[0], len(targets))
+
+        # Check that the number of rows matches the number of windows in segments/targets
+        self.assertEqual(x_df_arr.shape[0], len(segments) * 3)
+        self.assertEqual(y_df_arr.shape[0], len(targets) * 3)
 
         # Calculate average values from segments/targets
         data_means = []

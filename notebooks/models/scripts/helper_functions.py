@@ -132,15 +132,28 @@ def extract_percentile(windows, time_column, percentile=0.95):
 
     :param windows: List of windowed DataFrames to be extracted.
     :param time_column: name of the datetime object column in the DataFrame
-    :param percentile: float percentage of the value to extract.
+    :param percentile: float or array-like percentage(s) of the value(s) to extract.
         example: max = 1.0, min = 0.0, average = 0.5
 
     :return: datetimeIndexed DataFrame of percentiled windows.
     """
     extracted = pd.DataFrame()
     for df in windows:
-        extracted = extracted.append(df.quantile(percentile, numeric_only=False))
+        if isinstance(percentile, list):
+            dat_ser = pd.Series()
+            dat_frm = pd.DataFrame()
+            for percent in percentile:
+                #get the series for the percent
+                # add the column name with the percent appended to it
+                dat_ser = dat_ser.append(df.quantile(percent, numeric_only=False).add_suffix('_' + str(percent)))
+            dat_frm = dat_frm.append(dat_ser, ignore_index=True)
+            dat_frm[time_column] = df[time_column]
+            extracted = extracted.append(dat_frm)
+            extracted.reset_index()
+        else:
+            extracted = extracted.append(df.quantile(percentile, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
+
     return extracted.set_index(time_column + 'Index')
 
 
