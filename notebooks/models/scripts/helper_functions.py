@@ -143,13 +143,13 @@ def extract_percentile(windows, time_column, percentile=0.95):
             dat_ser = pd.Series()
             dat_frm = pd.DataFrame()
             for percent in percentile:
-                #get the series for the percent
+                # Get the series for the percent
                 # add the column name with the percent appended to it
                 dat_ser = dat_ser.append(df.quantile(percent, numeric_only=False).add_suffix('_' + str(percent)))
             dat_frm = dat_frm.append(dat_ser, ignore_index=True)
-            dat_frm[time_column] = df[time_column]
+            # Take the last time in the df to ensure we get the last one.
+            dat_frm[time_column] = df[time_column][-1]
             extracted = extracted.append(dat_frm)
-            extracted.reset_index()
         else:
             extracted = extracted.append(df.quantile(percentile, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
