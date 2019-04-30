@@ -14,7 +14,9 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 import scripts.logistic_regression_functions as lrf
 import scripts.helper_functions as hf
+import scripts.data_dictionary as dd
 from functools import partial
+from math import floor
 
 # In[2]:
 
@@ -300,7 +302,6 @@ drop_columns = []
 new_columns = []
 quantile_binning = False
 for i in range(0, len(train_dfs)):
-    train_dfs[i]
     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
     new_columns += b_cols
@@ -308,7 +309,6 @@ for i in range(0, len(train_dfs)):
 
 # add binned categories for testing sets
 for i in range(0, len(test_dfs)):
-    test_dfs[i]
     temp = test_dfs[i][x_columns].drop(columns=drop_columns)
     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
     new_columns += b_cols
@@ -353,7 +353,6 @@ print('############### {} ###############'.format('Add Weather Categories'))
 for df in test_dfs + train_dfs:
     df['rained'] = df['PRCP'].apply(
         lambda x: 1 if x > 0 else 0).astype('category')
-test_dfs[test_index].columns
 
 # add the weather columns to our x_columns
 x_columns = list(set(x_columns
@@ -370,8 +369,10 @@ for df in train_dfs + test_dfs:
     df['month'] = df['datetime'].apply(lambda x: x.month)
     df['day'] = df['datetime'].apply(
         lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
+    df['week'] = df['datetime'].apply(
+        lambda x: (floor((x - datetime.datetime(x.year, 1, 1)).days / 7) + 1))
 
-x_columns = list(set(x_columns + ['day', 'month']))
+x_columns = list(set(x_columns + ['day', 'month', 'week']))
 train_dfs[train_index].head()
 
 # ## Add Time of day Category
@@ -384,6 +385,21 @@ for df in train_dfs + test_dfs:
     df['time of day'] = df['datetime'].apply(hf.create_time_of_day).astype('category')
 x_columns.append('time of day')
 train_dfs[train_index].head()
+
+
+print('############### {} ###############'.format('Bucket all the columns'))
+
+columns_to_bucket = x_columns
+
+# get all of the columns in the bucket
+for column in x_columns:
+    x_columns.append(column + "_bucket")
+
+for column in columns_to_bucket:
+    if column in dd.all_dict:
+        hf.bucket_column(test_dfs[test_index], column, dd.all_dict[column])
+        hf.bucket_column(train_dfs[train_index], column, dd.all_dict[column])
+
 
 # ## Logistic Regression Model
 # ### Null Model
