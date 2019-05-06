@@ -126,7 +126,7 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
-def extract_percentile(windows, time_column, percentile=0.95):
+def extract_percentile(windows, time_column, target_column, feature_percentiles=[0.95], target_percentile=0.95):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
@@ -138,20 +138,24 @@ def extract_percentile(windows, time_column, percentile=0.95):
     :return: datetimeIndexed DataFrame of percentiled windows.
     """
     extracted = pd.DataFrame()
+    if not isinstance(feature_percentiles, list):
+        feature_percentiles = [feature_percentiles]
+    feature_percentiles = sorted(feature_percentiles)
+
     for df in windows:
-        if isinstance(percentile, list):
-            dat_ser = pd.Series()
-            dat_frm = pd.DataFrame()
-            for percent in percentile:
-                # Get the series for the percent
-                # add the column name with the percent appended to it
-                dat_ser = dat_ser.append(df.quantile(percent, numeric_only=False).add_suffix('_' + str(percent)))
-            dat_frm = dat_frm.append(dat_ser, ignore_index=True)
-            # Take the last time in the df to ensure we get the last one.
-            dat_frm[time_column] = df[time_column][-1]
-            extracted = extracted.append(dat_frm)
-        else:
-            extracted = extracted.append(df.quantile(percentile, numeric_only=False))
+        dat_ser = pd.Series()
+        dat_frm = pd.DataFrame()
+        for percent in feature_percentiles:
+            # Get the series for the percent
+            # add the column name with the percent appended to it
+            dat_ser = dat_ser.append(df.drop(columns=target_column).quantile(percent, numeric_only=False).add_suffix('_' + str(percent)))
+        dat_ser = dat_ser.append(df[[target_column]].quantile(target_percentile))
+        dat_frm = dat_frm.append(dat_ser, ignore_index=True)
+        # Take the last time in the df to ensure we get the last one.
+        dat_frm[time_column] = df[time_column][-1]
+        extracted = extracted.append(dat_frm)
+    # else:
+    #     extracted = extracted.append(df.quantile(percentile, numeric_only=False))
     extracted[time_column + 'Index'] = extracted[time_column]
 
     return extracted.set_index(time_column + 'Index')
@@ -161,7 +165,8 @@ def windowize(df, time_column, target_column,
               x_win_size=pd.Timedelta('28 days'),
               y_win_size=pd.Timedelta(1, unit='d'),
               shift=pd.Timedelta(14, unit='h'),
-              percentile=0.95,
+              feature_percentiles=[0.95],
+              target_percentile=0.95,
               separation=pd.Timedelta(0),
               custom_parameters=None):
     """
@@ -198,12 +203,16 @@ def windowize(df, time_column, target_column,
                                            y_win_size=y_win_size, shift=shift,
                                            separation=separation,
                                            custom_parameters=custom_parameters)
-    print("Extracting feature windows...")
-    x_windows = extract_percentile(x_windows, time_column, percentile=percentile)
-    print("Extracting target windows...")
-    y_windows = extract_percentile(y_windows, time_column, percentile=percentile)
-    print("Combining extractions...")
-    x_windows[target_column] = y_windows[target_column].values
+    print("Extracting feature and target windows...")
+    x_windows = extract_percentile(x_windows, time_column, target_column,
+                                   feature_percentiles=feature_percentiles,
+                                   target_percentile=target_percentile)
+    # print("Extracting target windows...")
+    # y_windows = extract_percentile(y_windows, time_column, ,
+    #                                feature_percentiles=feature_percentiles,
+    #                                target_percentile=target_percentile)
+    # print("Combining extractions...")
+    # x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
