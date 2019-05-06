@@ -276,15 +276,21 @@ presegmented_plot = pd.DataFrame(
      'Bloom Threshold': np.full(train_dfs[train_index].count()[0], RFU_THRESHOLD)})
 
 # Segment each data frame
+percentiles = [0.0, 0.5, 1.0]
 for i in range(0, len(train_dfs)):
     print("Windowizing 2017 data set:", i)
-    train_dfs[i] = hf.data_window_reduction(
-        train_dfs[i], 'datetime', target_column)
+    train_dfs[i] = hf.windowize(
+        train_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
     print("Windowizing 2018 data set:", i)
-    test_dfs[i] = hf.data_window_reduction(
-        test_dfs[i], 'datetime', target_column)
+    test_dfs[i] = hf.windowize(
+        test_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
     print()
 
+# Update x_columns
+to_drop = [target_column, 'datetime']
+to_drop += ['datetime_{}'.format(p) for p in percentiles]
+x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
+print("new x_columns:", x_columns)
 
 # ## Bucket/Bin Features
 # 
@@ -294,30 +300,28 @@ for i in range(0, len(train_dfs)):
 print('############### {} ###############'.format('Bucket/Bin Features'))
 
 
-# add binned categories
-bins = 3
-drop_columns = []
-new_columns = []
-quantile_binning = False
-for i in range(0, len(train_dfs)):
-    train_dfs[i]
-    temp = train_dfs[i][x_columns].drop(columns=drop_columns)
-    binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
-    new_columns += b_cols
-    train_dfs[i] = pd.concat([train_dfs[i], binned], axis='columns')
-
-# add binned categories for testing sets
-for i in range(0, len(test_dfs)):
-    test_dfs[i]
-    temp = test_dfs[i][x_columns].drop(columns=drop_columns)
-    binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
-    new_columns += b_cols
-    test_dfs[i] = pd.concat([test_dfs[i], binned], axis='columns')
-print(test_dfs[test_index].dtypes)
-
-# Add the new columns to x columns
-x_columns = list(set(x_columns + new_columns))
-print(x_columns)
+# # add binned categories TODO Fix this
+# bins = 2
+# drop_columns = []
+# new_columns = []
+# quantile_binning = False
+# for i in range(0, len(train_dfs)):
+#     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
+#     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
+#     new_columns += b_cols
+#     train_dfs[i] = pd.concat([train_dfs[i], binned], axis='columns')
+#
+# # add binned categories for testing sets
+# for i in range(0, len(test_dfs)):
+#     temp = test_dfs[i][x_columns].drop(columns=drop_columns)
+#     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
+#     new_columns += b_cols
+#     test_dfs[i] = pd.concat([test_dfs[i], binned], axis='columns')
+# print(test_dfs[test_index].dtypes)
+#
+# # Add the new columns to x columns
+# x_columns = list(set(x_columns + new_columns))
+# print(x_columns)
 
 # Add squared features
 print('############### {} ###############'.format('Square Features'))
@@ -349,30 +353,33 @@ print(x_columns)
 print('############### {} ###############'.format('Add Weather Categories'))
 
 
-# Add a rainy category
+# Add a rainy categories
 for df in test_dfs + train_dfs:
-    df['rained'] = df['PRCP'].apply(
-        lambda x: 1 if x > 0 else 0).astype('category')
-test_dfs[test_index].columns
+    for p in percentiles:
+        df['rained_{}'.format(p)] = df['PRCP_{}'.format(p)].apply(
+            lambda x: 1 if x > 0 else 0).astype('category')
 
 # add the weather columns to our x_columns
-x_columns = list(set(x_columns
-                     + ['PRCP', 'SNOW', 'SNWD', 'TMAX', 'TMIN', 'rained', 'Wind Speed', 'Wind Angle']))
+# Update x_columns
+to_drop = [target_column, 'datetime']
+to_drop += ['datetime_{}'.format(p) for p in percentiles]
+x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
+print("new x_columns:", x_columns)
 
-# ## Date Variables
-
-# In[23]:
-print('############### {} ###############'.format('Date Variables'))
-
-
-# Add month and day variables to our dataframes
-for df in train_dfs + test_dfs:
-    df['month'] = df['datetime'].apply(lambda x: x.month)
-    df['day'] = df['datetime'].apply(
-        lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
-
-x_columns = list(set(x_columns + ['day', 'month']))
-train_dfs[train_index].head()
+# # ## Date Variables
+#
+# # In[23]:
+# print('############### {} ###############'.format('Date Variables'))
+#
+#
+# # Add month and day variables to our dataframes
+# for df in train_dfs + test_dfs:
+#     df['month'] = df['datetime'].apply(lambda x: x.month)
+#     df['day'] = df['datetime'].apply(
+#         lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
+#
+# x_columns = list(set(x_columns + ['day', 'month']))
+# train_dfs[train_index].head()
 
 # ## Add Time of day Category
 
