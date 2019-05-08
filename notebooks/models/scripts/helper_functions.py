@@ -207,12 +207,12 @@ def windowize(df, time_column, target_column,
     x_windows = extract_percentile(x_windows, time_column, target_column,
                                    feature_percentiles=feature_percentiles,
                                    target_percentile=target_percentile)
-    # print("Extracting target windows...")
-    # y_windows = extract_percentile(y_windows, time_column, ,
-    #                                feature_percentiles=feature_percentiles,
-    #                                target_percentile=target_percentile)
-    # print("Combining extractions...")
-    # x_windows[target_column] = y_windows[target_column].values
+    print("Extracting target windows...")
+    y_windows = extract_percentile(y_windows, time_column, target_column,
+                                   feature_percentiles=feature_percentiles,
+                                   target_percentile=target_percentile)
+    print("Combining extractions...")
+    x_windows[target_column] = y_windows[target_column].values
     return x_windows
 
 
