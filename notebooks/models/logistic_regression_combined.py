@@ -268,20 +268,26 @@ for i in range(len(test_dfs)):
 # Create Window Slice Features
 print('############### {} ###############'.format('Window Slice Features'))
 
+x_win_size = pd.Timedelta('28 days')
+num_slices = 4
+custom_x_win = x_win_size / num_slices
+print("x win size:", x_win_size)
+print("Custom x win:", custom_x_win)
 custom_params = {}
-week_columns = []
+slice_columns = []
 for df in test_dfs + train_dfs:
     for col in x_columns:
-        for i in range(4):
-            new_col = col + "_week_" + str(i + 1)
+        for i in range(num_slices):
+            new_col = col + "_slice_" + str(i + 1)
             df[new_col] = df[col].copy()
             # Create a custom parameter for each feature
-            week = 4 - i
-            separation = week - 1
+            current_slice = num_slices - i
+            separation = current_slice - 1
             custom_params[new_col] = {
-                'x_win_size': pd.Timedelta(7, unit='d'),
-                'separation': pd.Timedelta(separation*7, unit='d')}
-            week_columns.append(new_col)
+                'x_win_size': custom_x_win,
+                'separation': separation * custom_x_win}
+            slice_columns.append(new_col)
+print(train_dfs[test_index].head(5))
 
 # ## Extract Windows
 # 
@@ -298,10 +304,10 @@ presegmented_plot = pd.DataFrame(
 for i in range(0, len(train_dfs)):
     print("Windowizing 2017 data set:", i)
     train_dfs[i] = hf.windowize(
-        train_dfs[i], 'datetime', target_column, custom_parameters=custom_params)
+        train_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params)
     print("Windowizing 2018 data set:", i)
     test_dfs[i] = hf.windowize(
-        test_dfs[i], 'datetime', target_column, custom_parameters=custom_params)
+        test_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params)
     print()
 
 
@@ -319,7 +325,6 @@ drop_columns = []
 new_columns = []
 quantile_binning = False
 for i in range(0, len(train_dfs)):
-    train_dfs[i]
     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
     new_columns += b_cols
@@ -327,7 +332,6 @@ for i in range(0, len(train_dfs)):
 
 # add binned categories for testing sets
 for i in range(0, len(test_dfs)):
-    test_dfs[i]
     temp = test_dfs[i][x_columns].drop(columns=drop_columns)
     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
     new_columns += b_cols
@@ -361,7 +365,7 @@ for df in train_dfs + test_dfs:
 # Add the new columns to x_columns
 x_columns = list(set(x_columns + list(gradients.columns)))
 x_columns = list(set(x_columns + list(squared.columns)))
-x_columns = list(set(x_columns + week_columns))
+x_columns = list(set(x_columns + slice_columns))
 
 print(x_columns)
 
