@@ -33,7 +33,6 @@ x_columns = ['Temp C', 'Sp Cond (uS/cm)', 'pH (mV)', 'pH', 'Turbidity (NTU)',
 
 target_column = 'BGA-Phycocyanin RFU'
 
-# TODO Create average off of minor bloom
 RFU_THRESHOLD = 1.2
 train_index = 0
 test_index = 0
@@ -53,7 +52,6 @@ train_dfs[train_index].head()
 
 # In[8]:
 print('############### {} ###############'.format('Use Datetime Index'))
-
 
 print(test_dfs[test_index].dtypes)
 print(train_dfs[train_index].dtypes)
@@ -91,7 +89,6 @@ test_dfs[test_index].head()
 # In[11]:
 print('############### {} ###############'.format('Fill missing values'))
 
-
 # Fill all missing values with the mean
 for df in test_dfs + train_dfs:
     for column in df.columns:
@@ -103,24 +100,22 @@ for df in test_dfs + train_dfs:
             print("Filling {} with mean: {}\n".format(column, df[column].mean()))
             df[column] = df[column].fillna(df[column].mean())
 
-        # ## Add relative columns
+# ## Add relative columns
 
 # In[12]:
 print('############### {} ###############'.format('Add relative columns'))
-
 
 relative_names = [col + '_relative' for col in x_columns]
 for i in range(0, len(train_dfs)):
     train_dfs[i][relative_names] = train_dfs[i][x_columns] - train_dfs[i][x_columns].mean()
     test_dfs[i][relative_names] = test_dfs[i][x_columns] - test_dfs[i][x_columns].mean()
-x_columns = list(set(x_columns + relative_names))
+# x_columns = list(set(x_columns + relative_names))
 train_dfs[train_index].head()
 
 # ## Add Weather Data
 
 # In[13]:
 print('############### {} ###############'.format('Add Weather Data'))
-
 
 ## Import And Clean Weather Data
 weather = pd.read_csv('../../data/cleaned/daily_weather_metric_2017_2018.csv')
@@ -177,7 +172,6 @@ for df in train_dfs + test_dfs:
 # In[15]:
 print('############### {} ###############'.format('Adding the Wind to weather'))
 
-
 weather_files = ['../../data/raw_data/weather/provo_airport_2017', '../../data/raw_data/weather/provo_airport_2018']
 # the array to store the readings in
 contents = []
@@ -229,33 +223,6 @@ for i in range(len(test_dfs)):
     # dataset
     test_dfs[i] = test_dfs[i].join(wind_frames[1])
 
-# Need to deal with the NaNs in the dataframe for the WInd Angle and Wind Speed. There is a couple of ways that we can do this. One way is to assume that the wind doesn't change direction from the last valid responce (or the next in the case where the first entry is a NaN) or to assume that weather acts predictibly and will change direction and angle easily from entry to entry.
-# 
-# I.E first entry 120 angle and 36 m/s speed, second (valid) entry 160 angle and 24 m/s speed slowing pan the angle inbetween and decrese the speed throughout so the entrries would look something like this:
-# 
-# From:
-# 
-# |Time Stamp|angle | speed |
-# |--|--|--|
-# |2018-04-11 12:00:00|120|36|
-# |2018-04-11 12:15:00|NaN|NaN|
-# |2018-04-11 12:30:00|NaN|NaN|
-# |2018-04-11 12:45:00|NaN|NaN|
-# |2018-04-11 13:00:00|160|24|
-# 
-# To:
-# 
-# |Time Stamp|angle | speed |
-# |--|--|--|
-# |2018-04-11 12:00:00|120|36|
-# |2018-04-11 12:15:00|130|33 |
-# |2018-04-11 12:30:00|140|30 |
-# |2018-04-11 12:45:00|150|27 |
-# |2018-04-11 13:00:00|160|24 |
-
-# In[18]:
-
-
 for i in range(len(train_dfs)):
     train_dfs[i]['Wind Angle'] = train_dfs[i]['Wind Angle'].interpolate(limit_direction='both')
     train_dfs[i]['Wind Speed'] = train_dfs[i]['Wind Speed'].interpolate(limit_direction='both')
@@ -269,7 +236,6 @@ for i in range(len(test_dfs)):
 
 # In[19]:
 print('############### {} ###############'.format('Extract Windows'))
-
 
 presegmented_plot = pd.DataFrame(
     {'BGA RFU': train_dfs[train_index][target_column],
@@ -286,7 +252,7 @@ for i in range(0, len(train_dfs)):
         test_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
     print()
 
-# Update x_columns
+# Update x_columns TODO REMOVE
 to_drop = [target_column, 'datetime']
 to_drop += ['datetime_{}'.format(p) for p in percentiles]
 x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
@@ -299,29 +265,38 @@ print("new x_columns:", x_columns)
 # In[21]:
 print('############### {} ###############'.format('Bucket/Bin Features'))
 
+bins = 3
+drop_columns = []
+new_columns = []
+quantile_binning = False
 
-# # add binned categories TODO Fix this
-# bins = 2
-# drop_columns = []
-# new_columns = []
-# quantile_binning = False
-# for i in range(0, len(train_dfs)):
-#     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
-#     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
-#     new_columns += b_cols
-#     train_dfs[i] = pd.concat([train_dfs[i], binned], axis='columns')
-#
-# # add binned categories for testing sets
-# for i in range(0, len(test_dfs)):
-#     temp = test_dfs[i][x_columns].drop(columns=drop_columns)
-#     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
-#     new_columns += b_cols
-#     test_dfs[i] = pd.concat([test_dfs[i], binned], axis='columns')
-# print(test_dfs[test_index].dtypes)
-#
-# # Add the new columns to x columns
-# x_columns = list(set(x_columns + new_columns))
-# print(x_columns)
+# drop columns that don't have enough data variation to meet the required boundaries for binning.
+for col in x_columns:
+    for df in train_dfs + test_dfs:
+        try:
+            hf.bin_df(df[[col]], bins, quantile_binning)
+        except ValueError:
+            print("Could not bin {} with {} # of bins".format(col, bins))
+            drop_columns.append(col)
+
+
+for i in range(0, len(train_dfs)):
+    temp = train_dfs[i][x_columns].drop(columns=drop_columns)
+    binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
+    new_columns += b_cols
+    train_dfs[i] = pd.concat([train_dfs[i], binned], axis='columns')
+
+# add binned categories for testing sets
+for i in range(0, len(test_dfs)):
+    temp = test_dfs[i][x_columns].drop(columns=drop_columns)
+    binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
+    new_columns += b_cols
+    test_dfs[i] = pd.concat([test_dfs[i], binned], axis='columns')
+print(test_dfs[test_index].dtypes)
+
+# Add the new columns to x columns
+x_columns = list(set(x_columns + new_columns))
+print(x_columns)
 
 # Add squared features
 print('############### {} ###############'.format('Square Features'))
@@ -352,7 +327,6 @@ print(x_columns)
 # In[22]:
 print('############### {} ###############'.format('Add Weather Categories'))
 
-
 # Add a rainy categories
 for df in test_dfs + train_dfs:
     for p in percentiles:
@@ -363,7 +337,7 @@ for df in test_dfs + train_dfs:
 # Update x_columns
 to_drop = [target_column, 'datetime']
 to_drop += ['datetime_{}'.format(p) for p in percentiles]
-x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
+x_columns = list(set(x_columns + train_dfs[0].drop(columns=to_drop).columns.values.tolist()))
 print("new x_columns:", x_columns)
 
 # # ## Date Variables
@@ -386,7 +360,6 @@ print("new x_columns:", x_columns)
 # In[24]:
 print('############### {} ###############'.format('Add Time of day Category'))
 
-
 for df in train_dfs + test_dfs:
     df['time of day'] = df['datetime'].apply(hf.create_time_of_day).astype('category')
 x_columns.append('time of day')
@@ -398,7 +371,6 @@ train_dfs[train_index].head()
 # In[26]:
 print('############### {} ###############'.format('Logistic Regression Model'))
 print('############### {} ###############'.format('Null Model'))
-
 
 lrf.add_target_column(train_dfs + test_dfs, threshold=RFU_THRESHOLD)
 
@@ -422,7 +394,6 @@ print("columns:", train_dfs[train_index].columns)
 # In[28]:
 print('############### {} ###############'.format('All variables model'))
 
-
 # All variables model performance
 max_iter = 25000
 loss = "log"
@@ -435,29 +406,10 @@ print("Precision", precision)
 print("Confusion Matrix:\n", cm)
 print("columns:", x_columns)
 
-# ### Best model to date
-
-# In[29]:
-print('############### {} ###############'.format('Best model to date'))
-
-
-max_iter = 25000
-loss = "log"
-base_columns = ['ODOSat%', 'ODO (mg/L)', 'pH', 'Temp C', 'Sp Cond (uS/cm)']
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-accuracy, recall, precision, cm, _, _, _ = lrf.train_model(
-    model, train_dfs[train_index], test_dfs[test_index], base_columns, 'bloom')
-print("Accuracy", accuracy)
-print("Recall:", recall)
-print("Precision", precision)
-print("Confusion Matrix:\n", cm)
-print("columns:", base_columns)
-
 # ### Greedy Model
 
 # In[30]:
 print('############### {} ###############'.format('Greedy Model'))
-
 
 max_iter = 25000
 loss = "log"
@@ -485,24 +437,10 @@ accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.gree
 predictions = [x[1] for x in predictions_prob]
 lrf.roc_plot(test_dfs[test_index][['bloom']].values, predictions)
 
-# ### Greedy Model With Base Columns
-
-# In[33]:
-print('############### {} ###############'.format('Greedy Model With Base Columns'))
-
-
-# create greedy model
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-
-accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns,
-    'bloom', sorted_columns, base_columns)
-
 # ## Random Forest Model
 
 # In[34]:
 print('############### {} ###############'.format('Random Forest Model'))
-
 
 # All Inputs
 model = RandomForestClassifier(n_estimators=100)
@@ -525,7 +463,6 @@ lrf.roc_plot(test_dfs[test_index][['bloom']].values, predictions)
 # In[38]:
 print('############### {} ###############'.format('Greedy Random Forest Model'))
 
-
 model = RandomForestClassifier(n_estimators=100)
 sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
                                             test_dfs[test_index],
@@ -534,5 +471,3 @@ sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
 accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
     model, train_dfs[train_index], test_dfs[test_index], x_columns,
     'bloom', sorted_columns)
-
-
