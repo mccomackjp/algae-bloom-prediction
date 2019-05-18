@@ -1,5 +1,7 @@
 # coding: utf-8
 
+# This file was exported from a jupyter notebook for easier merging.
+
 # # Logistic Regression Model
 
 # ## Data Import And Cleaning
@@ -109,7 +111,6 @@ relative_names = [col + '_relative' for col in x_columns]
 for i in range(0, len(train_dfs)):
     train_dfs[i][relative_names] = train_dfs[i][x_columns] - train_dfs[i][x_columns].mean()
     test_dfs[i][relative_names] = test_dfs[i][x_columns] - test_dfs[i][x_columns].mean()
-# x_columns = list(set(x_columns + relative_names))
 train_dfs[train_index].head()
 
 # ## Add Weather Data
@@ -117,7 +118,7 @@ train_dfs[train_index].head()
 # In[13]:
 print('############### {} ###############'.format('Add Weather Data'))
 
-## Import And Clean Weather Data
+# Import And Clean Weather Data
 weather = pd.read_csv('../../data/cleaned/daily_weather_metric_2017_2018.csv')
 
 # Find out how much of the data is missing for each column.
@@ -252,7 +253,6 @@ for i in range(0, len(train_dfs)):
         test_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
     print()
 
-# Update x_columns TODO REMOVE
 to_drop = [target_column, 'datetime']
 to_drop += ['datetime_{}'.format(p) for p in percentiles]
 x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
@@ -278,7 +278,6 @@ for col in x_columns:
         except ValueError:
             print("Could not bin {} with {} # of bins".format(col, bins))
             drop_columns.append(col)
-
 
 for i in range(0, len(train_dfs)):
     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
@@ -340,22 +339,20 @@ to_drop += ['datetime_{}'.format(p) for p in percentiles]
 x_columns = list(set(x_columns + train_dfs[0].drop(columns=to_drop).columns.values.tolist()))
 print("new x_columns:", x_columns)
 
-# # ## Date Variables
-#
-# # In[23]:
-# print('############### {} ###############'.format('Date Variables'))
-#
-#
-# # Add month and day variables to our dataframes
-# for df in train_dfs + test_dfs:
-#     df['month'] = df['datetime'].apply(lambda x: x.month)
-#     df['day'] = df['datetime'].apply(
-#         lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
-#
-# x_columns = list(set(x_columns + ['day', 'month']))
-# train_dfs[train_index].head()
+# ## Date Variables
 
-# ## Add Time of day Category
+# In[23]:
+print('############### {} ###############'.format('Date Variables'))
+
+# Add month and day variables to our dataframes
+for df in train_dfs + test_dfs:
+    df['month'] = df['datetime'].apply(lambda x: x.month)
+    df['day'] = df['datetime'].apply(
+        lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
+
+x_columns = list(set(x_columns + ['day', 'month']))
+
+# Add Time of day Category
 
 # In[24]:
 print('############### {} ###############'.format('Add Time of day Category'))
