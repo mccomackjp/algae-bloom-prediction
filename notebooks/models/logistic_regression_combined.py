@@ -232,6 +232,31 @@ for i in range(len(test_dfs)):
     test_dfs[i]['Wind Angle'] = test_dfs[i]['Wind Angle'].interpolate(limit_direction='both')
     test_dfs[i]['Wind Speed'] = test_dfs[i]['Wind Speed'].interpolate(limit_direction='both')
 
+
+# Create Window Slice Features
+print('############### {} ###############'.format('Window Slice Features'))
+
+x_win_size = pd.Timedelta('28 days')
+num_slices = 4
+custom_x_win = x_win_size / num_slices
+print("x win size:", x_win_size)
+print("Custom x win:", custom_x_win)
+custom_params = {}
+slice_columns = []
+for df in test_dfs + train_dfs:
+    for col in x_columns:
+        for i in range(num_slices):
+            new_col = col + "_slice_" + str(i + 1)
+            df[new_col] = df[col].copy()
+            # Create a custom parameter for each feature
+            current_slice = num_slices - i
+            separation = current_slice - 1
+            custom_params[new_col] = {
+                'x_win_size': custom_x_win,
+                'separation': separation * custom_x_win}
+            slice_columns.append(new_col)
+print(train_dfs[test_index].head(5))
+
 # ## Extract Windows
 # 
 
@@ -247,10 +272,10 @@ percentiles = [0.0, 0.5, 1.0]
 for i in range(0, len(train_dfs)):
     print("Windowizing 2017 data set:", i)
     train_dfs[i] = hf.windowize(
-        train_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
+        train_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params, feature_percentiles=percentiles)
     print("Windowizing 2018 data set:", i)
     test_dfs[i] = hf.windowize(
-        test_dfs[i], 'datetime', target_column, feature_percentiles=percentiles)
+        test_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params, feature_percentiles=percentiles)
     print()
 
 to_drop = [target_column, 'datetime']
@@ -319,6 +344,7 @@ for df in train_dfs + test_dfs:
 # Add the new columns to x_columns
 x_columns = list(set(x_columns + list(gradients.columns)))
 x_columns = list(set(x_columns + list(squared.columns)))
+
 print(x_columns)
 
 # ## Add Weather Categories
@@ -373,18 +399,22 @@ lrf.add_target_column(train_dfs + test_dfs, threshold=RFU_THRESHOLD)
 
 # In[27]:
 
+# Combine data sets
+print('############### {} ###############'.format('Combine Data Sets'))
+train = train_dfs[0].append(train_dfs[1])
+test = test_dfs[0].append(test_dfs[1])
 
 # The null model's performance
 max_iter = 25000
 loss = "log"
 model = SGDClassifier(max_iter=max_iter, loss=loss)
 accuracy, recall, precision, cm, _, _, _ = lrf.train_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns, 'bloom', null_model=True)
+    model, train, test, x_columns, 'bloom', null_model=True)
 print("Accuracy", accuracy)
 print("Recall:", recall)
 print("Precision", precision)
 print("Confusion Matrix:\n", cm)
-print("columns:", train_dfs[train_index].columns)
+print("columns:", train.columns)
 
 # ### All variables model
 
@@ -396,7 +426,7 @@ max_iter = 25000
 loss = "log"
 model = SGDClassifier(max_iter=max_iter, loss=loss)
 accuracy, recall, precision, cm, _, _, _ = lrf.train_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns, 'bloom')
+    model, train, test, x_columns, 'bloom')
 print("Accuracy", accuracy)
 print("Recall:", recall)
 print("Precision", precision)
@@ -412,8 +442,8 @@ max_iter = 25000
 loss = "log"
 model = SGDClassifier(max_iter=max_iter, loss=loss)
 # Sort columns by accuracy
-sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
-                                            test_dfs[test_index],
+sorted_columns = lrf.sort_columns_by_metric(model, train,
+                                            test,
                                             x_columns,
                                             'bloom')
 
@@ -424,15 +454,9 @@ sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
 model = SGDClassifier(max_iter=max_iter, loss=loss)
 
 accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns,
+    model, train, test, x_columns,
     'bloom', sorted_columns)
 
-# In[32]:
-
-
-# Print the ROC curve.
-predictions = [x[1] for x in predictions_prob]
-lrf.roc_plot(test_dfs[test_index][['bloom']].values, predictions)
 
 # ## Random Forest Model
 
@@ -442,18 +466,12 @@ print('############### {} ###############'.format('Random Forest Model'))
 # All Inputs
 model = RandomForestClassifier(n_estimators=100)
 accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.train_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns, 'bloom')
+    model, train, test, x_columns, 'bloom')
 print("Accuracy", accuracy)
 print("Recall:", recall)
 print("Precision", precision)
 print("Confusion Matrix:\n", cm)
 
-# In[35]:
-
-
-# Print the ROC curve.
-predictions = [x[1] for x in predictions_prob]
-lrf.roc_plot(test_dfs[test_index][['bloom']].values, predictions)
 
 # ## Greedy Random Forest Model
 
@@ -461,10 +479,6 @@ lrf.roc_plot(test_dfs[test_index][['bloom']].values, predictions)
 print('############### {} ###############'.format('Greedy Random Forest Model'))
 
 model = RandomForestClassifier(n_estimators=100)
-sorted_columns = lrf.sort_columns_by_metric(model, train_dfs[train_index],
-                                            test_dfs[test_index],
-                                            x_columns,
-                                            'bloom')
 accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
-    model, train_dfs[train_index], test_dfs[test_index], x_columns,
+    model, train, test, x_columns,
     'bloom', sorted_columns)

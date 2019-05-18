@@ -221,7 +221,7 @@ def create_numpy_arrays(training_df, testing_df, x_columns, y_column,
     return x_train, y_train, x_test, y_test
 
 
-def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False):
+def train_model(model, training_df, testing_df, x_columns, y_column, null_model=False, verbose=0):
     """
     Trains a Scikit-Learn classification model on the given training and testing data frames.
 
@@ -232,6 +232,7 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     :param y_column: Target column to be predicted.
     :param max_iter: Max iterations for training.
     :param null_model: Whether to train a null model or not.
+    :param verbose: 1 = print results. 0 = print nothing.
 
     :return: tuple of accuracy, recall, precision, and confusing matrix metrics,
 
@@ -252,6 +253,12 @@ def train_model(model, training_df, testing_df, x_columns, y_column, null_model=
     recall = recall_score(y_test, predictions)
     precision = precision_score(y_test, predictions)
     cm = confusion_matrix(y_test, predictions)
+    if verbose:
+        print("Accuracy", accuracy)
+        print("Recall:", recall)
+        print("Precision", precision)
+        print("Confusion Matrix:\n", cm)
+        print()
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
@@ -399,10 +406,10 @@ def cross_validate(model, df_early, df_late, x_columns, y_column):
                                                                                             df_early[i],
                                                                                             x_columns, y_column,
                                                                                             null_model=False)
-            results['dfl{}_dfe{}'.format(j,i)] = (accuracy, recall, precision)
+            results['dfl{}_dfe{}'.format(j, i)] = (accuracy, recall, precision)
             accuracy, recall, precision, cm, predictions, predictions_prob, _ = train_model(model, df_early[i],
                                                                                             df_late[j],
                                                                                             x_columns, y_column,
                                                                                             null_model=False)
-            results['dfe{}_dfl{}'.format(i,j)] = (accuracy, recall, precision)
+            results['dfe{}_dfl{}'.format(i, j)] = (accuracy, recall, precision)
     return results
