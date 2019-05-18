@@ -366,6 +366,15 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy recall:", recall)
     print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
+
+    print("Cross validating final greedy model...")
+    temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
+    temp_model = train_model(model, testing_df, training_df, greedy_columns, y_column)
+    print("Test model accuracy:", temp_accuracy)
+    print("Test model recall:", temp_recall)
+    print("Test model precision:", temp_precision)
+    print("Final greedy confusion matrix:\n", temp_cm)
+
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
 
