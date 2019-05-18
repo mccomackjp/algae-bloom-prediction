@@ -44,17 +44,30 @@ class TestDataSegment(unittest.TestCase):
         # Create a custom variables for the custom column
         parameters = {'custom': {'x_win_size': pd.Timedelta('1 day'),
                                  'separation': pd.Timedelta('1 day')}}
+        percentile_array = [0.5, 0.7, 0.8, 0.9, 0.3]
         segments, targets = hf.extract_windows(self.df, self.time_column,
                                                x_win_size=pd.Timedelta(2, unit='d'),
                                                y_win_size=pd.Timedelta(2, unit='d'),
                                                shift=pd.Timedelta(1, unit='d'),
                                                custom_parameters=parameters)
-        x_df = hf.extract_percentile(segments, self.time_column, 0.5)
-        y_df = hf.extract_percentile(targets, self.time_column, 0.5)
+        x_df = hf.extract_percentile(segments, self.time_column, percentile_array[0])
+        y_df = hf.extract_percentile(targets, self.time_column, percentile_array[0])
+
+        x_df_arr = hf.extract_percentile(segments, self.time_column, percentile_array)
+        y_df_arr = hf.extract_percentile(targets, self.time_column,  percentile_array)
 
         # Check that the number of rows matches the number of windows in segments/targets
         self.assertEqual(x_df.shape[0], len(segments))
         self.assertEqual(y_df.shape[0], len(targets))
+
+        # Check that the number of rows matches the number of windows in segments/targets
+        self.assertEqual(x_df_arr.shape[0], len(segments))
+        self.assertEqual(y_df_arr.shape[0], len(targets))
+        # Checking to see if the size of the resulting array is the right shape along the column axis
+        # this is done because we have to ensure that for every item in the percentile array that we pass in
+        # the percentile will be appended to EACH of the column names in the returned array.
+        self.assertEqual(x_df_arr.shape[1], segments[0].shape[0] * len(percentile_array) + 1)
+        self.assertEqual(y_df_arr.shape[1], segments[0].shape[0] * len(percentile_array) + 1)
 
         # Calculate average values from segments/targets
         data_means = []

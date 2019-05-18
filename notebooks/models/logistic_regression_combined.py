@@ -1,5 +1,7 @@
 # coding: utf-8
 
+# This file was exported from a jupyter notebook for easier merging.
+
 # # Logistic Regression Model
 
 # ## Data Import And Cleaning
@@ -33,7 +35,6 @@ x_columns = ['Temp C', 'Sp Cond (uS/cm)', 'pH (mV)', 'pH', 'Turbidity (NTU)',
 
 target_column = 'BGA-Phycocyanin RFU'
 
-# TODO Create average off of minor bloom
 RFU_THRESHOLD = 1.2
 train_index = 0
 test_index = 0
@@ -53,7 +54,6 @@ train_dfs[train_index].head()
 
 # In[8]:
 print('############### {} ###############'.format('Use Datetime Index'))
-
 
 print(test_dfs[test_index].dtypes)
 print(train_dfs[train_index].dtypes)
@@ -91,7 +91,6 @@ test_dfs[test_index].head()
 # In[11]:
 print('############### {} ###############'.format('Fill missing values'))
 
-
 # Fill all missing values with the mean
 for df in test_dfs + train_dfs:
     for column in df.columns:
@@ -103,17 +102,15 @@ for df in test_dfs + train_dfs:
             print("Filling {} with mean: {}\n".format(column, df[column].mean()))
             df[column] = df[column].fillna(df[column].mean())
 
-        # ## Add relative columns
+# ## Add relative columns
 
 # In[12]:
 print('############### {} ###############'.format('Add relative columns'))
-
 
 relative_names = [col + '_relative' for col in x_columns]
 for i in range(0, len(train_dfs)):
     train_dfs[i][relative_names] = train_dfs[i][x_columns] - train_dfs[i][x_columns].mean()
     test_dfs[i][relative_names] = test_dfs[i][x_columns] - test_dfs[i][x_columns].mean()
-x_columns = list(set(x_columns + relative_names))
 train_dfs[train_index].head()
 
 # ## Add Weather Data
@@ -121,8 +118,7 @@ train_dfs[train_index].head()
 # In[13]:
 print('############### {} ###############'.format('Add Weather Data'))
 
-
-## Import And Clean Weather Data
+# Import And Clean Weather Data
 weather = pd.read_csv('../../data/cleaned/daily_weather_metric_2017_2018.csv')
 
 # Find out how much of the data is missing for each column.
@@ -177,7 +173,6 @@ for df in train_dfs + test_dfs:
 # In[15]:
 print('############### {} ###############'.format('Adding the Wind to weather'))
 
-
 weather_files = ['../../data/raw_data/weather/provo_airport_2017', '../../data/raw_data/weather/provo_airport_2018']
 # the array to store the readings in
 contents = []
@@ -229,33 +224,6 @@ for i in range(len(test_dfs)):
     # dataset
     test_dfs[i] = test_dfs[i].join(wind_frames[1])
 
-# Need to deal with the NaNs in the dataframe for the WInd Angle and Wind Speed. There is a couple of ways that we can do this. One way is to assume that the wind doesn't change direction from the last valid responce (or the next in the case where the first entry is a NaN) or to assume that weather acts predictibly and will change direction and angle easily from entry to entry.
-# 
-# I.E first entry 120 angle and 36 m/s speed, second (valid) entry 160 angle and 24 m/s speed slowing pan the angle inbetween and decrese the speed throughout so the entrries would look something like this:
-# 
-# From:
-# 
-# |Time Stamp|angle | speed |
-# |--|--|--|
-# |2018-04-11 12:00:00|120|36|
-# |2018-04-11 12:15:00|NaN|NaN|
-# |2018-04-11 12:30:00|NaN|NaN|
-# |2018-04-11 12:45:00|NaN|NaN|
-# |2018-04-11 13:00:00|160|24|
-# 
-# To:
-# 
-# |Time Stamp|angle | speed |
-# |--|--|--|
-# |2018-04-11 12:00:00|120|36|
-# |2018-04-11 12:15:00|130|33 |
-# |2018-04-11 12:30:00|140|30 |
-# |2018-04-11 12:45:00|150|27 |
-# |2018-04-11 13:00:00|160|24 |
-
-# In[18]:
-
-
 for i in range(len(train_dfs)):
     train_dfs[i]['Wind Angle'] = train_dfs[i]['Wind Angle'].interpolate(limit_direction='both')
     train_dfs[i]['Wind Speed'] = train_dfs[i]['Wind Speed'].interpolate(limit_direction='both')
@@ -295,21 +263,25 @@ print(train_dfs[test_index].head(5))
 # In[19]:
 print('############### {} ###############'.format('Extract Windows'))
 
-
 presegmented_plot = pd.DataFrame(
     {'BGA RFU': train_dfs[train_index][target_column],
      'Bloom Threshold': np.full(train_dfs[train_index].count()[0], RFU_THRESHOLD)})
 
 # Segment each data frame
+percentiles = [0.0, 0.5, 1.0]
 for i in range(0, len(train_dfs)):
     print("Windowizing 2017 data set:", i)
     train_dfs[i] = hf.windowize(
-        train_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params)
+        train_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params, feature_percentiles=percentiles)
     print("Windowizing 2018 data set:", i)
     test_dfs[i] = hf.windowize(
-        test_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params)
+        test_dfs[i], 'datetime', target_column, x_win_size=x_win_size, custom_parameters=custom_params, feature_percentiles=percentiles)
     print()
 
+to_drop = [target_column, 'datetime']
+to_drop += ['datetime_{}'.format(p) for p in percentiles]
+x_columns = train_dfs[0].drop(columns=to_drop).columns.values.tolist()
+print("new x_columns:", x_columns)
 
 # ## Bucket/Bin Features
 # 
@@ -318,12 +290,20 @@ for i in range(0, len(train_dfs)):
 # In[21]:
 print('############### {} ###############'.format('Bucket/Bin Features'))
 
-
-# add binned categories
 bins = 3
 drop_columns = []
 new_columns = []
 quantile_binning = False
+
+# drop columns that don't have enough data variation to meet the required boundaries for binning.
+for col in x_columns:
+    for df in train_dfs + test_dfs:
+        try:
+            hf.bin_df(df[[col]], bins, quantile_binning)
+        except ValueError:
+            print("Could not bin {} with {} # of bins".format(col, bins))
+            drop_columns.append(col)
+
 for i in range(0, len(train_dfs)):
     temp = train_dfs[i][x_columns].drop(columns=drop_columns)
     binned, b_cols = hf.bin_df(temp, bins, quantile_binning)
@@ -355,7 +335,6 @@ for i in range(len(train_dfs)):
     test_dfs[i][squared.columns] = squared
     print("new test shape:", test_dfs[i].shape)
 
-
 # Add gradient features
 print('############### {} ###############'.format('Gradient Features'))
 for df in train_dfs + test_dfs:
@@ -365,7 +344,6 @@ for df in train_dfs + test_dfs:
 # Add the new columns to x_columns
 x_columns = list(set(x_columns + list(gradients.columns)))
 x_columns = list(set(x_columns + list(squared.columns)))
-x_columns = list(set(x_columns + slice_columns))
 
 print(x_columns)
 
@@ -374,22 +352,23 @@ print(x_columns)
 # In[22]:
 print('############### {} ###############'.format('Add Weather Categories'))
 
-
-# Add a rainy category
+# Add a rainy categories
 for df in test_dfs + train_dfs:
-    df['rained'] = df['PRCP'].apply(
-        lambda x: 1 if x > 0 else 0).astype('category')
-test_dfs[test_index].columns
+    for p in percentiles:
+        df['rained_{}'.format(p)] = df['PRCP_{}'.format(p)].apply(
+            lambda x: 1 if x > 0 else 0).astype('category')
 
 # add the weather columns to our x_columns
-x_columns = list(set(x_columns
-                     + ['PRCP', 'SNOW', 'SNWD', 'TMAX', 'TMIN', 'rained', 'Wind Speed', 'Wind Angle']))
+# Update x_columns
+to_drop = [target_column, 'datetime']
+to_drop += ['datetime_{}'.format(p) for p in percentiles]
+x_columns = list(set(x_columns + train_dfs[0].drop(columns=to_drop).columns.values.tolist()))
+print("new x_columns:", x_columns)
 
 # ## Date Variables
 
 # In[23]:
 print('############### {} ###############'.format('Date Variables'))
-
 
 # Add month and day variables to our dataframes
 for df in train_dfs + test_dfs:
@@ -398,13 +377,11 @@ for df in train_dfs + test_dfs:
         lambda x: (x - datetime.datetime(x.year, 1, 1)).days)
 
 x_columns = list(set(x_columns + ['day', 'month']))
-train_dfs[train_index].head()
 
-# ## Add Time of day Category
+# Add Time of day Category
 
 # In[24]:
 print('############### {} ###############'.format('Add Time of day Category'))
-
 
 for df in train_dfs + test_dfs:
     df['time of day'] = df['datetime'].apply(hf.create_time_of_day).astype('category')
@@ -417,7 +394,6 @@ train_dfs[train_index].head()
 # In[26]:
 print('############### {} ###############'.format('Logistic Regression Model'))
 print('############### {} ###############'.format('Null Model'))
-
 
 lrf.add_target_column(train_dfs + test_dfs, threshold=RFU_THRESHOLD)
 
@@ -445,7 +421,6 @@ print("columns:", train.columns)
 # In[28]:
 print('############### {} ###############'.format('All variables model'))
 
-
 # All variables model performance
 max_iter = 25000
 loss = "log"
@@ -458,29 +433,10 @@ print("Precision", precision)
 print("Confusion Matrix:\n", cm)
 print("columns:", x_columns)
 
-# ### Best model to date
-
-# In[29]:
-print('############### {} ###############'.format('Best model to date'))
-
-
-max_iter = 25000
-loss = "log"
-base_columns = ['ODOSat%', 'ODO (mg/L)', 'pH', 'Temp C', 'Sp Cond (uS/cm)']
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-accuracy, recall, precision, cm, _, _, _ = lrf.train_model(
-    model, train, test, base_columns, 'bloom')
-print("Accuracy", accuracy)
-print("Recall:", recall)
-print("Precision", precision)
-print("Confusion Matrix:\n", cm)
-print("columns:", base_columns)
-
 # ### Greedy Model
 
 # In[30]:
 print('############### {} ###############'.format('Greedy Model'))
-
 
 max_iter = 25000
 loss = "log"
@@ -501,31 +457,11 @@ accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.gree
     model, train, test, x_columns,
     'bloom', sorted_columns)
 
-# In[32]:
-
-
-# Print the ROC curve.
-predictions = [x[1] for x in predictions_prob]
-lrf.roc_plot(test[['bloom']].values, predictions)
-
-# ### Greedy Model With Base Columns
-
-# In[33]:
-print('############### {} ###############'.format('Base Columns Greedy Model'))
-
-
-# create greedy model
-model = SGDClassifier(max_iter=max_iter, loss=loss)
-
-accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
-    model, train, test, x_columns,
-    'bloom', sorted_columns, base_columns)
 
 # ## Random Forest Model
 
 # In[34]:
 print('############### {} ###############'.format('Random Forest Model'))
-
 
 # All Inputs
 model = RandomForestClassifier(n_estimators=100)
@@ -536,9 +472,13 @@ print("Recall:", recall)
 print("Precision", precision)
 print("Confusion Matrix:\n", cm)
 
-# In[35]:
 
+# ## Greedy Random Forest Model
 
-# Print the ROC curve.
-predictions = [x[1] for x in predictions_prob]
-lrf.roc_plot(test[['bloom']].values, predictions)
+# In[38]:
+print('############### {} ###############'.format('Greedy Random Forest Model'))
+
+model = RandomForestClassifier(n_estimators=100)
+accuracy, recall, precision, cm, predictions, predictions_prob, model = lrf.greedy_model(
+    model, train, test, x_columns,
+    'bloom', sorted_columns)
