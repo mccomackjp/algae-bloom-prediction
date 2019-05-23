@@ -29,19 +29,19 @@ We use the Python pandas and scikit-learn libraries for data analysis and model 
 
 ![](/images/lr_formula.png)
 
-where ŷ is the predicted probability, b is the bias or intercept, xi  are the input features, wi  are the feature weights, n is the number of samples, and  ![](https://msoese.atlassian.net/wiki/download/thumbnails/853016632/image2019-5-5_14-31-13.png?version=1&modificationDate=1557084676187&cacheVersion=1&api=v2&width=40&height=27) is the Sigmoid function:
+where ŷ is the predicted probability, b is the bias or intercept, xi  are the input features, wi  are the feature weights, n is the number of samples, and  ![](/images/sigmoid.webp) is the Sigmoid function:
 
-![](/images/sigmoid.webp)
+![](/images/sigmoid_formula.png)
 
 ### Metrics
 
 Accuracy, recall, and precision will be used as the primary metrics for model evaluation:
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-56-33.png?version=1&modificationDate=1557082596237&cacheVersion=1&api=v2)
+![](/images/accuracy.png)
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-56-45.png?version=1&modificationDate=1557082608757&cacheVersion=1&api=v2)
+![](/images/precision.png)
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-56-59.png?version=1&modificationDate=1557082622523&cacheVersion=1&api=v2)
+![](/images/recall.png)
 
 where tp is the number of true positives (a bloom is predicted a bloom), tn is the number of true negatives (a non-bloom is predicted a non-bloom), fp is the number of false positives (a non-bloom is predicted a bloom), fn is the number of false negatives (a bloom is predicted a non-bloom), ŷi is the predicted class (i.e. bloom or non-bloom), yi  is the actual class, and n is the number of samples.
 
@@ -60,9 +60,9 @@ A simple greedy algorithm is used to select features for a given model, the step
 
   
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_15-34-2.png?version=1&modificationDate=1557088446092&cacheVersion=1&api=v2)
+![Figure 1: Greedy Algorithm](/images/greedy_algo.png)
 
-Figure 1: Greedy Algorithm
+
 
 ### Timeseries Data Extraction
 
