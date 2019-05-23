@@ -27,7 +27,7 @@ We use a greedy feature selection algorithm and a sliding window process for ext
 
 We use the Python pandas and scikit-learn libraries for data analysis and model development. Scikit-learn offers a common API for various machine learning algorithms to allow for fast and simple algorithm swapping and comparison. We're using logistic regression models, the formula for logistic regression is defined as follows:
 
-![](/images/lr_formula)
+![](/images/lr_formula.png)
 
 where ŷ is the predicted probability, b is the bias or intercept, xi  are the input features, wi  are the feature weights, n is the number of samples, and  ![](https://msoese.atlassian.net/wiki/download/thumbnails/853016632/image2019-5-5_14-31-13.png?version=1&modificationDate=1557084676187&cacheVersion=1&api=v2&width=40&height=27) is the Sigmoid function:
 
