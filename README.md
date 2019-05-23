@@ -60,9 +60,9 @@ A simple greedy algorithm is used to select features for a given model, the step
 
   
 
-![Figure 1: Greedy Algorithm](/images/greedy_algo.png)
+![](/images/greedy_algo.png)
 
-
+Figure 1: Greedy Algorithm
 
 ### Timeseries Data Extraction
 
@@ -70,31 +70,31 @@ The periodic sensor readings from the buoys produce timeseries with much variabi
 
 Figure 2 depicts a 2-plot comparison of BGA RFU levels over the entire data set prior to (left) and after window extraction (right). This example shows how the BGA RFU levels are relatively smoothed by extracting the 95th  percentile (near max value) from a sliding 24-hour target window.
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-57-53.png?version=1&modificationDate=1557082677071&cacheVersion=1&api=v2)
+![](/images/smoothing.png)
 
 Figure 2: BGA data prior to window extraction (left), and BGA data after window extraction (right).
 
-As an example, given a feature window size of 2 days, a target window size of 1 day, a shift amount of 1 day, and a dataset with a length of 6 days, our sliding window method would behave similar to what is depicted in Figure 3. In this example our process begins by creating a 2 day feature window, beginning at the start of the dataset, and a 1 day target window immediately following the feature window, spanning a total length of 3 days over the dataset. The windows then shift by 1 day, creating a new feature and target window over a period of time 1 day later than the first iteration. This process repeats until the entire dataset is covered, creating a total of 8 windows in this example. Single values are then extracted from each window (such as the mean), where a total of 4 feature values, and 4 associated target values will be used for training/testing models.
+As an example, given a feature window size of 2 days, a target window size of 1 day, a shift amount of 1 day, and a dataset with a length of 6 days, the sliding window method would behave similar to what is depicted in Figure 3. In this example our process begins by creating a 2 day feature window, beginning at the start of the dataset, and a 1 day target window immediately following the feature window, spanning a total length of 3 days over the dataset. The windows then shift by 1 day, creating a new feature and target window over a period of time 1 day later than the first iteration. This process repeats until the entire dataset is covered, creating a total of 8 windows in this example. Single values are then extracted from each window (such as the mean), where a total of 4 feature values, and 4 associated target values will be used for training/testing models.
 
-Figure 3 depicts our sliding window method used to extract data points from a subset series (or window) within the total timeseries. A min, mean, max, or any percentile value may be extracted from the given into a single data point. After extracting an input and target data point from the feature and target windows, each window is then shifted a given amount until the entire data set has been extracted.
+Figure 3 depicts the sliding window method used to extract data points from a subset series (or window) within the total timeseries. A min, mean, max, or any percentile value may be extracted from the given into a single data point. After extracting an input and target data point from the feature and target windows, each window is then shifted a given amount until the entire data set has been extracted.
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-58-4.png?version=1&modificationDate=1557082688032&cacheVersion=1&api=v2)
+![](/images/sliding_window.png)
 
 Figure 3: Diagram of Sliding Window Method
 
   
 
-Our sliding window method can incorporate variable separations in time, as depicted by the yellow delta segments in Figure 4. These deltas may be customized for specific features to narrow and fine tune optimal feature window size and placement or remain constant for the entire data set to effectively allow the model to predict at further points ahead in time.
+The sliding window method can incorporate variable separations in time, as depicted by the yellow delta segments in Figure 4. These deltas may be customized for specific features to narrow and fine tune optimal feature window size and placement or remain constant for the entire data set to effectively allow the model to predict at further points ahead in time.
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-58-12.png?version=1&modificationDate=1557082695936&cacheVersion=1&api=v2)
+![](/images/delta.png)
 
 Figure 4: Diagram of Sliding Window Method with Delta Period Between Features and Targets
 
   
 
-Our sliding window method can incorporate variable feature window sizes for specific features as shown in Figure 5. Window sizes for specific features will remain constant throughout the data set (e.g. feature 1 in Figure 5) but can vary from other feature windows in length (e.g. feature 2 in Figure 5). This allows for custom feature window sizes within the same dataset. This provides the capability for optimizing window sizes on each feature as oppose to using a universal feature window size, since peak correlation periods can occur at different points in time from one feature to another.
+The sliding window method can incorporate variable feature window sizes for specific features as shown in Figure 5. Window sizes for specific features will remain constant throughout the data set (e.g. feature 1 in Figure 5) but can vary from other feature windows in length (e.g. feature 2 in Figure 5). This allows for custom feature window sizes within the same dataset. This provides the capability for optimizing window sizes on each feature as oppose to using a universal feature window size, since peak correlation periods can occur at different points in time from one feature to another.
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-58-28.png?version=1&modificationDate=1557082711635&cacheVersion=1&api=v2)
+![](/images/variable.png)
 
 Figure 5: Diagram of Sliding Window Method with Variable Window Sizes
 
