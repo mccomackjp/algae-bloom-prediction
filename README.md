@@ -31,7 +31,7 @@ We use the Python pandas and scikit-learn libraries for data analysis and model 
 
 where ŷ is the predicted probability, b is the bias or intercept, xi  are the input features, wi  are the feature weights, n is the number of samples, and  ![](https://msoese.atlassian.net/wiki/download/thumbnails/853016632/image2019-5-5_14-31-13.png?version=1&modificationDate=1557084676187&cacheVersion=1&api=v2&width=40&height=27) is the Sigmoid function:
 
-![](https://msoese.atlassian.net/wiki/download/attachments/853016632/image2019-5-5_13-51-7.png?version=1&modificationDate=1557082270064&cacheVersion=1&api=v2)
+![](/images/sigmoid.webp)
 
 ### Metrics
 
