@@ -126,7 +126,10 @@ def data_window_reduction(df, time_column, target_column,
     return x_windows
 
 
-def extract_percentile(windows, time_column, target_column, feature_percentiles=[0.95], target_percentile=0.95):
+def extract_percentile(windows, time_column,
+                       target_column='BGA-Phycocyanin RFU',
+                       feature_percentiles=[0.95],
+                       target_percentile=0.95):
     """
     Extracts the percentiles from the list of windowed DataFrames into a single DataFrame.
 
@@ -147,8 +150,9 @@ def extract_percentile(windows, time_column, target_column, feature_percentiles=
         dat_frm = pd.DataFrame()
         for percent in feature_percentiles:
             # Get the series for the percent
-            # add the column name with the percent appended to it
-            dat_ser = dat_ser.append(df.drop(columns=target_column).quantile(percent, numeric_only=False).add_suffix('_' + str(percent)))
+            # add the column name with the percent appended to it if we have multiple percentiles.
+            suffix = '_' + str(percent) if len(feature_percentiles) > 1 else ''
+            dat_ser = dat_ser.append(df.drop(columns=target_column).quantile(percent, numeric_only=False).add_suffix(suffix))
         dat_ser = dat_ser.append(df[[target_column]].quantile(target_percentile))
         dat_frm = dat_frm.append(dat_ser, ignore_index=True)
         # Take the last time in the df to ensure we get the last one.
@@ -161,7 +165,8 @@ def extract_percentile(windows, time_column, target_column, feature_percentiles=
     return extracted.set_index(time_column + 'Index')
 
 
-def windowize(df, time_column, target_column,
+def windowize(df, time_column,
+              target_column='BGA-Phycocyanin RFU',
               x_win_size=pd.Timedelta('28 days'),
               y_win_size=pd.Timedelta(1, unit='d'),
               shift=pd.Timedelta(14, unit='h'),
