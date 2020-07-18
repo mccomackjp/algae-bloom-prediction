@@ -340,6 +340,10 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     else:
         accuracy, recall, precision, cm, predictions, predictions_prob, model = train_model(
             model, training_df, testing_df, x_columns, y_column, null_model=True)
+        print("Null model accuracy", accuracy)
+        print("Null model  recall:", recall)
+        print("Null model  precision:", precision)
+        print("Null model  confusion matrix:\n", cm)
 
     greedy_columns = base_columns
     # Remove the base columns from the greedy columns
@@ -374,13 +378,16 @@ def greedy_model(model, training_df, testing_df, x_columns, y_column, sorted_col
     print("Final greedy precision:", precision)
     print("Final greedy confusion matrix:\n", cm)
 
-    print("Cross validating final greedy model...")
-    temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
-    temp_model = train_model(model, testing_df, training_df, greedy_columns, y_column)
-    print("Test model accuracy:", temp_accuracy)
-    print("Test model recall:", temp_recall)
-    print("Test model precision:", temp_precision)
-    print("Final greedy confusion matrix:\n", temp_cm)
+    if len(greedy_columns) > 0:
+        print("Cross validating final greedy model...")
+        temp_accuracy, temp_recall, temp_precision, temp_cm, temp_pred, temp_pred_prob, \
+        temp_model = train_model(model, testing_df, training_df, greedy_columns, y_column)
+        print("Test model accuracy:", temp_accuracy)
+        print("Test model recall:", temp_recall)
+        print("Test model precision:", temp_precision)
+        print("Final greedy confusion matrix:\n", temp_cm)
+    else:
+        print('No greedy columns selected, skipping cross validation.')
 
     return accuracy, recall, precision, cm, predictions, predictions_prob, model
 
